@@ -43,8 +43,8 @@ export const ROLES = {
 
 export const ROLE_META = {
   ADMIN: { label: 'Admin', icon: ShieldCheck, home: '/admin' },
-  EXAMINER: { label: 'Examiner', icon: PencilLine, home: '/examiner' },
-  CANDIDATE: { label: 'Candidate', icon: GraduationCap, home: '/candidate' },
+  EXAMINER: { label: 'Teacher', icon: PencilLine, home: '/examiner' },
+  CANDIDATE: { label: 'Student', icon: GraduationCap, home: '/candidate' },
 }
 
 export const ROLE_OPTIONS = Object.entries(ROLE_META).map(([value, meta]) => ({ value, label: meta.label }))
@@ -81,9 +81,9 @@ export const CHECK_STATUS_META = {
 }
 
 export const SETTING_DEFS = [
-  { key: 'shuffleQuestions', label: 'Shuffle questions', description: 'Each candidate sees the questions in a different order.' },
-  { key: 'shuffleOptions', label: 'Shuffle options', description: 'Answer options are reordered for every candidate.' },
-  { key: 'negativeMarking', label: 'Negative marking', description: 'Wrong answers deduct marks.' },
+  { key: 'shuffleQuestions', label: 'Randomize questions' },
+  { key: 'shuffleOptions', label: 'Randomize options' },
+  { key: 'negativeMarking', label: 'Negative marking' },
 ]
 
 export const LIFECYCLE_STEPS = ['DRAFT', 'PUBLISHED', 'ONGOING', 'COMPLETED']
@@ -91,30 +91,47 @@ export const LIFECYCLE_STEPS = ['DRAFT', 'PUBLISHED', 'ONGOING', 'COMPLETED']
 // --- questions, results, monitoring, disputes -------------------------------------
 
 export const DIFFICULTY_META = {
+  EASY: { label: 'Easy', icon: Signal, tone: 'success' },
+  MEDIUM: { label: 'Medium', icon: SignalLow, tone: 'warning' },
+  HARD: { label: 'Hard', icon: SignalZero, tone: 'danger' },
   easy: { label: 'Easy', icon: Signal, tone: 'success' },
   medium: { label: 'Medium', icon: SignalLow, tone: 'warning' },
   hard: { label: 'Hard', icon: SignalZero, tone: 'danger' },
 }
-export const DIFFICULTY_OPTIONS = Object.entries(DIFFICULTY_META).map(([value, meta]) => ({ value, label: meta.label }))
+export const DIFFICULTY_OPTIONS = [
+  { value: 'EASY', label: 'Easy' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HARD', label: 'Hard' },
+]
 
+/** Schema QuestionType (+ legacy aliases for existing mock data). */
 export const QUESTION_TYPE_META = {
-  MCQ_SINGLE: { label: 'Single answer', short: 'Single' },
+  SINGLE_CHOICE: { label: 'Single choice', short: 'Single' },
+  MULTIPLE_SELECT: { label: 'Multiple select', short: 'Multi' },
+  WRITTEN: { label: 'Written', short: 'Written' },
+  MCQ_SINGLE: { label: 'Single choice', short: 'Single' },
   MCQ_MULTI: { label: 'Multiple select', short: 'Multi' },
-  WRITTEN: { label: 'Written response', short: 'Written' },
 }
-export const QUESTION_TYPE_OPTIONS = Object.entries(QUESTION_TYPE_META).map(([value, meta]) => ({ value, label: meta.label }))
+export const QUESTION_TYPE_OPTIONS = [
+  { value: 'SINGLE_CHOICE', label: 'Single choice' },
+  { value: 'MULTIPLE_SELECT', label: 'Multiple select' },
+  { value: 'WRITTEN', label: 'Written' },
+]
 
 export const MARKING_RULES = {
   ALL_OR_NOTHING: 'All or nothing',
   PARTIAL: 'Partial credit with penalty',
 }
 
-/** Where an exam's results stand. Always decided by the server. */
+/** Aggregate exam results pipeline (UI). Per-attempt uses ResultStatus below. */
 export const RESULTS_STATE_META = {
   NOT_READY: { label: 'Not ready', icon: Hourglass, tone: 'neutral' },
   UNGRADED: { label: 'Ungraded', icon: PencilLine, tone: 'warning' },
   GRADED: { label: 'Graded', icon: ClipboardCheck, tone: 'info' },
   PUBLISHED: { label: 'Published', icon: FileCheck2, tone: 'success' },
+  PENDING_REVIEW: { label: 'Pending review', icon: Hourglass, tone: 'warning' },
+  READY_TO_PUBLISH: { label: 'Ready to publish', icon: ClipboardCheck, tone: 'info' },
+  WITHHELD: { label: 'Withheld', icon: Ban, tone: 'neutral' },
 }
 
 export const CONNECTION_META = {
@@ -124,18 +141,27 @@ export const CONNECTION_META = {
   ENDED: { label: 'Submitted', icon: CircleCheck, tone: 'neutral' },
 }
 
+/** Prisma AttemptEventType (+ legacy monitor aliases). */
 export const INCIDENT_META = {
+  NETWORK_DISCONNECTED: { label: 'Network disconnected', icon: WifiOff },
+  NETWORK_RESTORED: { label: 'Network restored', icon: Wifi },
+  ANSWER_SAVE_FAILED: { label: 'Answer save failed', icon: ClipboardPaste },
+  ANSWER_SAVE_SUCCEEDED: { label: 'Answer saved', icon: ClipboardCheck },
   TAB_HIDDEN: { label: 'Left the exam tab', icon: EyeOff },
-  FULLSCREEN_EXIT: { label: 'Left full-screen mode', icon: Maximize },
-  PASTE_DETECTED: { label: 'Pasted text into an answer', icon: ClipboardPaste },
-  CONNECTION_LOST: { label: 'Connection lost', icon: WifiOff },
-  CONNECTION_UNSTABLE: { label: 'Unstable connection', icon: MonitorOff },
+  WINDOW_BLURRED: { label: 'Window lost focus', icon: Maximize },
+  ATTEMPT_RESUMED: { label: 'Attempt resumed', icon: MonitorOff },
+  // Legacy mock aliases
+  FULLSCREEN_EXIT: { label: 'Window lost focus', icon: Maximize },
+  PASTE_DETECTED: { label: 'Answer save failed', icon: ClipboardPaste },
+  CONNECTION_LOST: { label: 'Network disconnected', icon: WifiOff },
+  CONNECTION_UNSTABLE: { label: 'Network disconnected', icon: MonitorOff },
 }
 
 export const DISPUTE_STATUS_META = {
   OPEN: { label: 'Open', icon: CircleDot, tone: 'warning' },
   UNDER_REVIEW: { label: 'Under review', icon: Search, tone: 'info' },
   RESOLVED: { label: 'Resolved', icon: CircleCheck, tone: 'success' },
+  REJECTED: { label: 'Rejected', icon: Ban, tone: 'neutral' },
 }
 
 export const DISPUTE_OUTCOME_META = {

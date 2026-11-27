@@ -10,11 +10,27 @@ export function ownedExam(id) {
   return found
 }
 
+function windowFields(input) {
+  return {
+    startAt: input.startsAt ?? input.startAt,
+    endAt: input.endsAt ?? input.endAt,
+  }
+}
+
+function settingsFromInput(input) {
+  return {
+    shuffleQuestions: Boolean(input.randomizeQuestions ?? input.settings?.shuffleQuestions),
+    shuffleOptions: Boolean(input.randomizeOptions ?? input.settings?.shuffleOptions),
+    negativeMarking: Boolean(input.negativeMarking ?? input.settings?.negativeMarking),
+  }
+}
+
 function validate(input) {
   const details = {}
   if (!input.title?.trim()) details.title = 'Title is required.'
-  const start = new Date(input.startAt).getTime()
-  const end = new Date(input.endAt).getTime()
+  const { startAt, endAt } = windowFields(input)
+  const start = new Date(startAt).getTime()
+  const end = new Date(endAt).getTime()
   if (Number.isNaN(start)) details.startAt = 'Start time is not valid.'
   if (Number.isNaN(end)) details.endAt = 'End time is not valid.'
   if (!details.startAt && !details.endAt) {
@@ -51,20 +67,19 @@ export async function createExam(input) {
   await delay()
   validate(input)
   const now = new Date(serverNow()).toISOString()
+  const { startAt, endAt } = windowFields(input)
   const created = {
     id: nextId('ex'),
     ownerId: me.id,
     title: input.title.trim(),
+    description: input.description?.trim() ?? '',
     instructions: input.instructions?.trim() ?? '',
-    startAt: input.startAt,
-    endAt: input.endAt,
+    startAt,
+    endAt,
     durationMinutes: input.durationMinutes,
+    maxAttempts: input.maxAttempts ?? 1,
     totalMarks: input.totalMarks,
-    settings: {
-      shuffleQuestions: Boolean(input.settings?.shuffleQuestions),
-      shuffleOptions: Boolean(input.settings?.shuffleOptions),
-      negativeMarking: Boolean(input.settings?.negativeMarking),
-    },
+    settings: settingsFromInput(input),
     published: false,
     createdAt: now,
     updatedAt: now,
@@ -81,15 +96,19 @@ export async function updateExam(id, input) {
   if (examStatus(target) !== 'DRAFT') {
     fail(409, 'EXAM_LOCKED', 'Published exams can no longer be edited.')
   }
-  validate({ ...target, ...input })
+  const merged = { ...target, ...input, startAt: input.startsAt ?? input.startAt ?? target.startAt, endAt: input.endsAt ?? input.endAt ?? target.endAt }
+  validate(merged)
+  const { startAt, endAt } = windowFields(merged)
   Object.assign(target, {
     title: input.title.trim(),
+    description: input.description?.trim() ?? target.description ?? '',
     instructions: input.instructions?.trim() ?? '',
-    startAt: input.startAt,
-    endAt: input.endAt,
+    startAt,
+    endAt,
     durationMinutes: input.durationMinutes,
+    maxAttempts: input.maxAttempts ?? target.maxAttempts ?? 1,
     totalMarks: input.totalMarks,
-    settings: { ...target.settings, ...input.settings },
+    settings: { ...target.settings, ...settingsFromInput(input) },
     updatedAt: new Date(serverNow()).toISOString(),
   })
   return clone(toExamDto(target))

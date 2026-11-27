@@ -54,7 +54,7 @@ export default function AdminAuditPage() {
 
   return (
     <>
-      <PageHeader title="Audit log" description="A read-only history of important actions across the system." />
+      <PageHeader title="Audit log" />
 
       <Card className="mb-4 border-b-0 shadow-none">
         <div className="flex flex-col gap-3 border-b border-border p-4 md:flex-row md:flex-wrap md:items-end">

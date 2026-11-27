@@ -29,17 +29,21 @@ export async function createUser({ name, email, role, password }) {
       details,
     )
   }
+  const fullName = name.trim()
+  const createdAt = new Date(serverNow()).toISOString()
   const created = {
     id: nextId('u'),
-    name: name.trim(),
+    fullName,
+    name: fullName,
     email: email.trim().toLowerCase(),
     role,
     password,
     isActive: true,
-    createdAt: new Date(serverNow()).toISOString(),
+    createdAt,
+    updatedAt: createdAt,
   }
   users.push(created)
-  record(requireRole('ADMIN'), 'USER_CREATED', created.name, `${created.role.toLowerCase()} account created`)
+  record(requireRole('ADMIN'), 'USER_CREATED', fullName, `${created.role.toLowerCase()} account created`)
   return clone(publicUser(created))
 }
 
@@ -132,7 +136,18 @@ export async function importUsers(rows) {
   if (errors.length > 0) fail(422, 'VALIDATION_ERROR', 'Some rows are not valid. Nobody was imported.', errors)
   const createdAt = new Date(serverNow()).toISOString()
   for (const row of rows) {
-    users.push({ id: nextId('u'), name: row.name.trim(), email: row.email.trim().toLowerCase(), role: row.role, password: row.password, isActive: true, createdAt })
+    const fullName = row.name.trim()
+    users.push({
+      id: nextId('u'),
+      fullName,
+      name: fullName,
+      email: row.email.trim().toLowerCase(),
+      role: row.role,
+      password: row.password,
+      isActive: true,
+      createdAt,
+      updatedAt: createdAt,
+    })
   }
   record(me, 'USERS_IMPORTED', 'Users', `${rows.length} accounts imported from CSV`)
   return { created: rows.length }

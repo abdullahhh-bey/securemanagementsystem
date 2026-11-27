@@ -16,35 +16,45 @@ import { ExamFlowStepper } from '@/components/exam/ExamFlowStepper'
 import { useCreateExam, useExam, useUpdateExam } from '@/hooks/useExams'
 import { SETTING_DEFS } from '@/lib/constants'
 import { formatDuration, isoToLocalInput, localInputToIso, localTimeZoneLabel } from '@/lib/format'
+import { mapExamToApi, normalizeExam } from '@/lib/schema'
 import { examSchema } from '@/lib/schemas'
 
 const EMPTY = {
   title: '',
+  description: '',
   instructions: '',
   startAt: '',
   endAt: '',
   durationMinutes: 60,
   totalMarks: 100,
+  maxAttempts: 1,
   settings: { shuffleQuestions: true, shuffleOptions: true, negativeMarking: false },
 }
 
-const toFormValues = (exam) => ({
-  title: exam.title,
-  instructions: exam.instructions ?? '',
-  startAt: isoToLocalInput(exam.startAt),
-  endAt: isoToLocalInput(exam.endAt),
-  durationMinutes: exam.durationMinutes,
-  totalMarks: exam.totalMarks,
-  settings: { ...EMPTY.settings, ...exam.settings },
-})
+const toFormValues = (raw) => {
+  const exam = normalizeExam(raw)
+  return {
+    title: exam.title,
+    description: exam.description ?? '',
+    instructions: exam.instructions ?? '',
+    startAt: isoToLocalInput(exam.startsAt),
+    endAt: isoToLocalInput(exam.endsAt),
+    durationMinutes: exam.durationMinutes,
+    totalMarks: exam.totalMarks,
+    maxAttempts: exam.maxAttempts ?? 1,
+    settings: { ...EMPTY.settings, ...exam.settings },
+  }
+}
 
-const toPayload = (values) => ({
-  ...values,
-  title: values.title.trim(),
-  instructions: values.instructions.trim(),
-  startAt: localInputToIso(values.startAt),
-  endAt: localInputToIso(values.endAt),
-})
+const toPayload = (values) =>
+  mapExamToApi({
+    ...values,
+    title: values.title.trim(),
+    description: values.description?.trim() ?? '',
+    instructions: values.instructions.trim(),
+    startAt: localInputToIso(values.startAt),
+    endAt: localInputToIso(values.endAt),
+  })
 
 function ExamForm({ exam }) {
   const navigate = useNavigate()
@@ -87,30 +97,26 @@ function ExamForm({ exam }) {
         <Card as="section" aria-labelledby="basics-heading">
           <CardHeader>
             <CardTitle id="basics-heading">Basics</CardTitle>
-            <CardDescription>What candidates will see before they enter.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="grid gap-4">
             <FormField label="Title" error={errors.title?.message} required>
-              {(field) => <Input {...field} placeholder="e.g. Data Structures Midterm" {...register('title')} />}
+              {(field) => <Input {...field} {...register('title')} />}
             </FormField>
-            <FormField
-              label="Instructions"
-              error={errors.instructions?.message}
-              hint="Shown to candidates on their exam card and before they start."
-            >
-              {(field) => <Textarea {...field} rows={5} {...register('instructions')} />}
+            <FormField label="Description" error={errors.description?.message}>
+              {(field) => <Input {...field} {...register('description')} />}
+            </FormField>
+            <FormField label="Instructions" error={errors.instructions?.message}>
+              {(field) => <Textarea {...field} rows={4} {...register('instructions')} />}
             </FormField>
           </CardContent>
         </Card>
 
         <Card as="section" aria-labelledby="schedule-heading">
           <CardHeader>
-            <CardTitle id="schedule-heading">Schedule and scoring</CardTitle>
-            <CardDescription>
-              Candidates can enter any time inside the window and then get their full duration.{tz ? ` Times are in your timezone (${tz}).` : ''}
-            </CardDescription>
+            <CardTitle id="schedule-heading">Schedule</CardTitle>
+            {tz ? <CardDescription>Times in {tz}</CardDescription> : null}
           </CardHeader>
-          <CardContent className="grid gap-5 sm:grid-cols-2">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <FormField label="Opens at" error={errors.startAt?.message} required>
               {(field) => <Input {...field} type="datetime-local" {...register('startAt')} />}
             </FormField>
@@ -118,9 +124,9 @@ function ExamForm({ exam }) {
               {(field) => <Input {...field} type="datetime-local" {...register('endAt')} />}
             </FormField>
             <FormField
-              label="Duration (minutes)"
+              label="Duration (min)"
               error={errors.durationMinutes?.message}
-              hint={windowMinutes > 0 ? `The window is ${formatDuration(windowMinutes)} long; duration must fit inside it.` : 'Must fit inside the window.'}
+              hint={windowMinutes > 0 ? `Window ${formatDuration(windowMinutes)}` : undefined}
               required
             >
               {(field) => <Input {...field} type="number" inputMode="numeric" min={1} step={1} {...register('durationMinutes', { valueAsNumber: true })} />}
@@ -128,29 +134,26 @@ function ExamForm({ exam }) {
             <FormField label="Total marks" error={errors.totalMarks?.message} required>
               {(field) => <Input {...field} type="number" inputMode="numeric" min={1} step={1} {...register('totalMarks', { valueAsNumber: true })} />}
             </FormField>
+            <FormField label="Max attempts" error={errors.maxAttempts?.message}>
+              {(field) => <Input {...field} type="number" inputMode="numeric" min={1} step={1} {...register('maxAttempts', { valueAsNumber: true })} />}
+            </FormField>
           </CardContent>
         </Card>
 
         <Card as="section" aria-labelledby="settings-heading">
           <CardHeader>
-            <CardTitle id="settings-heading">Exam settings</CardTitle>
+            <CardTitle id="settings-heading">Settings</CardTitle>
           </CardHeader>
           <ul className="divide-y divide-border">
-            {SETTING_DEFS.map(({ key, label, description }) => (
-              <li key={key} className="flex items-center justify-between gap-6 px-6 py-4">
-                <div>
-                  <Label htmlFor={`setting-${key}`}>{label}</Label>
-                  <p id={`setting-${key}-desc`} className="mt-1 text-sm text-muted">
-                    {description}
-                  </p>
-                </div>
+            {SETTING_DEFS.map(({ key, label }) => (
+              <li key={key} className="flex items-center justify-between gap-6 px-6 py-3.5">
+                <Label htmlFor={`setting-${key}`}>{label}</Label>
                 <Controller
                   control={control}
                   name={`settings.${key}`}
                   render={({ field }) => (
                     <Switch
                       id={`setting-${key}`}
-                      aria-describedby={`setting-${key}-desc`}
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       onBlur={field.onBlur}
@@ -174,11 +177,11 @@ function ExamForm({ exam }) {
           <Button variant="ghost" onClick={() => navigate(exam ? `/examiner/exams/${exam.id}` : '/examiner/exams')} disabled={pending}>
             Cancel
           </Button>
-          <Button variant="secondary" onClick={save('details')} loading={pending}>
+          <Button variant="secondary" onClick={save('details')} loading={pending} loadingLabel="Saving…">
             {!pending && <Save />}
             Save draft
           </Button>
-          <Button type="submit" loading={pending}>
+          <Button type="submit" loading={pending} loadingLabel="Saving…">
             Save and review
             {!pending && <ArrowRight />}
           </Button>

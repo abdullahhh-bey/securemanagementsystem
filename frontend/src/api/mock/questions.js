@@ -4,8 +4,21 @@ import { assignedFor, examQuestions, hash, paperMarks, questionById, questions, 
 import { ownedExam } from './exams'
 import { clone, delay, fail, serverNow } from './helpers'
 
-const TYPES = ['MCQ_SINGLE', 'MCQ_MULTI', 'WRITTEN']
-const DIFFICULTIES = ['easy', 'medium', 'hard']
+const TYPE_ALIASES = {
+  SINGLE_CHOICE: 'MCQ_SINGLE',
+  MULTIPLE_SELECT: 'MCQ_MULTI',
+  WRITTEN: 'WRITTEN',
+  MCQ_SINGLE: 'MCQ_SINGLE',
+  MCQ_MULTI: 'MCQ_MULTI',
+}
+const DIFF_ALIASES = {
+  EASY: 'easy',
+  MEDIUM: 'medium',
+  HARD: 'hard',
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+}
 const RULES = ['ALL_OR_NOTHING', 'PARTIAL']
 
 function usage(questionId) {
@@ -25,11 +38,12 @@ function ownedQuestion(id) {
 /** Validates and normalises a question payload. Throws 422 with field messages. */
 export function normalizeQuestion(input) {
   const details = {}
-  const type = input.type
-  if (!TYPES.includes(type)) details.type = 'Choose a question type.'
-  if (!input.text?.trim()) details.text = 'Write the question text.'
-  if (!input.topic?.trim()) details.topic = 'Add a topic so you can filter later.'
-  if (!DIFFICULTIES.includes(input.difficulty)) details.difficulty = 'Difficulty must be easy, medium or hard.'
+  const type = TYPE_ALIASES[input.type] ?? null
+  const difficulty = DIFF_ALIASES[input.difficulty] ?? null
+  if (!type) details.type = 'Choose a question type.'
+  if (!input.text?.trim()) details.text = 'Question text is required.'
+  if (!input.topic?.trim()) details.topic = 'Topic is required.'
+  if (!difficulty) details.difficulty = 'Difficulty must be easy, medium or hard.'
   if (!(Number(input.defaultMarks) > 0)) details.defaultMarks = 'Marks must be more than zero.'
 
   let options = []
@@ -55,7 +69,7 @@ export function normalizeQuestion(input) {
     type,
     text: input.text.trim(),
     topic: input.topic.trim(),
-    difficulty: input.difficulty,
+    difficulty,
     defaultMarks: Number(input.defaultMarks),
     options,
     markingRule,

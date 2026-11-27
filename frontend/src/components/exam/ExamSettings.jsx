@@ -23,7 +23,7 @@ export function ExamSettings({ settings }) {
               <p className="text-sm font-semibold">
                 {label} <span className="font-normal text-muted">{'\u00b7'} {on ? 'On' : 'Off'}</span>
               </p>
-              <p className="text-sm text-muted">{description}</p>
+              {description ? <p className="text-sm text-muted">{description}</p> : null}
             </div>
           </li>
         )

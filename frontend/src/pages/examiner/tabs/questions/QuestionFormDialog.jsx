@@ -5,18 +5,22 @@ import { Plus, Trash2 } from 'lucide-react'
 import { applyFieldErrors } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input, Select, Textarea } from '@/components/ui/input'
 import { FormField } from '@/components/FormField'
 import { useCreateQuestion, useUpdateQuestion } from '@/hooks/useQuestions'
 import { DIFFICULTY_OPTIONS, MARKING_RULES, QUESTION_TYPE_OPTIONS } from '@/lib/constants'
 import { questionSchema } from '@/lib/schemas'
 
+const isMulti = (type) => type === 'MULTIPLE_SELECT' || type === 'MCQ_MULTI'
+const isSingle = (type) => type === 'SINGLE_CHOICE' || type === 'MCQ_SINGLE'
+const isChoice = (type) => isMulti(type) || isSingle(type)
+
 const EMPTY = {
-  type: 'MCQ_SINGLE',
+  type: 'SINGLE_CHOICE',
   text: '',
   topic: '',
-  difficulty: 'medium',
+  difficulty: 'MEDIUM',
   defaultMarks: 5,
   options: [
     { text: '', isCorrect: false },
@@ -46,18 +50,17 @@ const toForm = (question) =>
 
 const toPayload = (values) => {
   const filled = values.options.filter((o) => o.text.trim())
-  const base = {
+  return {
     type: values.type,
     text: values.text.trim(),
     topic: values.topic.trim(),
     difficulty: values.difficulty,
     defaultMarks: Number(values.defaultMarks),
     options: values.type === 'WRITTEN' ? [] : filled.map((o) => ({ text: o.text.trim(), isCorrect: o.isCorrect })),
-    markingRule: values.type === 'MCQ_MULTI' ? values.markingRule : null,
-    penalty: values.type === 'MCQ_MULTI' && values.markingRule === 'PARTIAL' ? Number(values.penalty) : 0,
+    markingRule: isMulti(values.type) ? values.markingRule : null,
+    penalty: isMulti(values.type) && values.markingRule === 'PARTIAL' ? Number(values.penalty) : 0,
     modelAnswer: values.type === 'WRITTEN' ? values.modelAnswer.trim() : '',
   }
-  return base
 }
 
 export function QuestionFormDialog({ open, onOpenChange, question }) {
@@ -106,12 +109,11 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{question ? 'Edit question' : 'New question'}</DialogTitle>
-          <DialogDescription>Add it to your bank first, then assign it to this exam.</DialogDescription>
         </DialogHeader>
         <DialogBody>
-          <form id="question-form" noValidate className="space-y-5" onSubmit={save}>
-            <fieldset disabled={pending} className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
+          <form id="question-form" noValidate className="grid gap-4" onSubmit={save}>
+            <fieldset disabled={pending} className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <FormField label="Type" error={errors.type?.message} required>
                   {(field) => (
                     <Select {...field} {...register('type')}>
@@ -136,24 +138,25 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                 </FormField>
               </div>
 
-              <FormField label="Topic" error={errors.topic?.message} required>
-                {(field) => <Input {...field} {...register('topic')} placeholder="e.g. Networks" />}
-              </FormField>
+              <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
+                <FormField label="Topic" error={errors.topic?.message} required>
+                  {(field) => <Input {...field} {...register('topic')} />}
+                </FormField>
+                <FormField label="Marks" error={errors.defaultMarks?.message} required>
+                  {(field) => <Input {...field} type="number" min={1} step={1} {...register('defaultMarks', { valueAsNumber: true })} />}
+                </FormField>
+              </div>
 
-              <FormField label="Question text" error={errors.text?.message} required>
+              <FormField label="Question" error={errors.text?.message} required>
                 {(field) => <Textarea {...field} rows={4} {...register('text')} />}
               </FormField>
 
-              <FormField label="Default marks" error={errors.defaultMarks?.message} required hint={type === 'WRITTEN' ? 'Maximum marks when assigned to an exam.' : undefined}>
-                {(field) => <Input {...field} type="number" min={1} step={1} {...register('defaultMarks', { valueAsNumber: true })} />}
-              </FormField>
-
-              {(type === 'MCQ_SINGLE' || type === 'MCQ_MULTI') && (
+              {isChoice(type) && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">Answer options</p>
+                    <p className="text-sm font-semibold">Options</p>
                     <Button type="button" variant="secondary" size="sm" onClick={() => append({ text: '', isCorrect: false })} disabled={fields.length >= 8}>
-                      <Plus /> Add option
+                      <Plus /> Add
                     </Button>
                   </div>
                   {errors.options?.message && (
@@ -172,7 +175,7 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                               className="mt-2.5"
                               checked={checkField.value}
                               onCheckedChange={(checked) => {
-                                if (type === 'MCQ_SINGLE' && checked === true) {
+                                if (isSingle(type) && checked === true) {
                                   fields.forEach((_, i) => {
                                     if (i !== index) setValue(`options.${i}.isCorrect`, false)
                                   })
@@ -200,7 +203,7 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                       </li>
                     ))}
                   </ul>
-                  {type === 'MCQ_MULTI' && (
+                  {isMulti(type) && (
                     <div className="grid gap-4 sm:grid-cols-2">
                       <FormField label="Marking rule" error={errors.markingRule?.message}>
                         {(field) => (
@@ -214,7 +217,7 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                         )}
                       </FormField>
                       {markingRule === 'PARTIAL' && (
-                        <FormField label="Penalty per wrong option" error={errors.penalty?.message} hint="Fraction of the marks lost (0 to 1).">
+                        <FormField label="Penalty" error={errors.penalty?.message}>
                           {(field) => <Input {...field} type="number" min={0} max={1} step={0.05} {...register('penalty', { valueAsNumber: true })} />}
                         </FormField>
                       )}
@@ -224,8 +227,8 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
               )}
 
               {type === 'WRITTEN' && (
-                <FormField label="Model answer" error={errors.modelAnswer?.message} hint="Optional reference for markers.">
-                  {(field) => <Textarea {...field} rows={4} {...register('modelAnswer')} />}
+                <FormField label="Model answer" error={errors.modelAnswer?.message}>
+                  {(field) => <Textarea {...field} rows={3} {...register('modelAnswer')} />}
                 </FormField>
               )}
             </fieldset>
@@ -235,8 +238,8 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
           <Button variant="secondary" onClick={() => handleOpenChange(false)} disabled={pending}>
             Cancel
           </Button>
-          <Button type="submit" form="question-form" loading={pending}>
-            {question ? 'Save changes' : 'Create question'}
+          <Button type="submit" form="question-form" loading={pending} loadingLabel="Saving…">
+            {question ? 'Save' : 'Create'}
           </Button>
         </DialogFooter>
       </DialogContent>

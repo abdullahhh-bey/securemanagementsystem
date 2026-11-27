@@ -1,14 +1,15 @@
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select } from '@/components/ui/input'
 import { FormField } from '@/components/FormField'
 import { useUpdateUser } from '@/hooks/useUsers'
 import { ROLE_META, ROLE_OPTIONS } from '@/lib/constants'
+import { userDisplayName } from '@/lib/schema'
 import { editRoleSchema } from '@/lib/schemas'
 
-function EditRoleForm({ user, onDone }) {
+function EditRoleForm({ user, onDone, allowedRoles }) {
   const {
     register,
     handleSubmit,
@@ -17,9 +18,12 @@ function EditRoleForm({ user, onDone }) {
   } = useForm({ resolver: zodResolver(editRoleSchema), defaultValues: { role: user.role } })
 
   const updateUser = useUpdateUser({
-    successMessage: (updated) => `${updated.name} is now ${ROLE_META[updated.role].label.toLowerCase()}`,
+    successMessage: (updated) => `${userDisplayName(updated)} is now ${ROLE_META[updated.role].label}`,
   })
   const unchanged = useWatch({ control, name: 'role' }) === user.role
+  const options = allowedRoles?.length
+    ? ROLE_OPTIONS.filter((o) => allowedRoles.includes(o.value) || o.value === user.role)
+    : ROLE_OPTIONS
 
   return (
     <form
@@ -28,10 +32,10 @@ function EditRoleForm({ user, onDone }) {
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
-        <FormField label="Role" error={errors.role?.message} hint="Changing a role takes effect the next time they load a page.">
+        <FormField label="Role" error={errors.role?.message}>
           {(field) => (
             <Select {...field} {...register('role')}>
-              {ROLE_OPTIONS.map((option) => (
+              {options.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -44,23 +48,29 @@ function EditRoleForm({ user, onDone }) {
         <Button variant="secondary" onClick={onDone} disabled={updateUser.isPending}>
           Cancel
         </Button>
-        <Button type="submit" loading={updateUser.isPending} disabledReason={unchanged ? 'Pick a different role to save.' : undefined}>
-          Save role
+        <Button
+          type="submit"
+          loading={updateUser.isPending}
+          loadingLabel="Saving…"
+          disabledReason={unchanged ? 'Pick a different role.' : undefined}
+        >
+          Save
         </Button>
       </DialogFooter>
     </form>
   )
 }
 
-export function EditRoleDialog({ user, onOpenChange }) {
+export function EditRoleDialog({ user, onOpenChange, allowedRoles }) {
   return (
     <Dialog open={Boolean(user)} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Change role</DialogTitle>
-          <DialogDescription>{user ? `Choose a new role for ${user.name}.` : ''}</DialogDescription>
         </DialogHeader>
-        {user && <EditRoleForm key={user.id} user={user} onDone={() => onOpenChange(false)} />}
+        {user && (
+          <EditRoleForm key={user.id} user={user} onDone={() => onOpenChange(false)} allowedRoles={allowedRoles} />
+        )}
       </DialogContent>
     </Dialog>
   )

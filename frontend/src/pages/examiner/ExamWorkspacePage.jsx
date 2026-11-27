@@ -115,8 +115,12 @@ function QuestionBlock({ question, answer, onAnswer }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {question.type === 'MCQ_SINGLE' && <McqSingle question={question} value={answer} onChange={onAnswer} />}
-        {question.type === 'MCQ_MULTI' && <McqMulti question={question} value={answer} onChange={onAnswer} />}
+        {(question.type === 'MCQ_SINGLE' || question.type === 'SINGLE_CHOICE') && (
+          <McqSingle question={question} value={answer} onChange={onAnswer} />
+        )}
+        {(question.type === 'MCQ_MULTI' || question.type === 'MULTIPLE_SELECT') && (
+          <McqMulti question={question} value={answer} onChange={onAnswer} />
+        )}
         {question.type === 'WRITTEN' && <WrittenAnswer question={question} value={answer} onChange={onAnswer} />}
       </CardContent>
     </Card>

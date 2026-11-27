@@ -33,8 +33,8 @@ const buttonVariants = cva(
 
 /**
  * - `loading`: shows a spinner and blocks clicks (prevents double submits).
- * - `disabledReason`: disables the control but keeps it focusable and explains
- *   why in a tooltip (used e.g. to block self-demotion).
+ * - `loadingLabel`: replaces children while loading so the user knows what is happening.
+ * - `disabledReason`: disables the control but keeps it focusable and explains why.
  */
 export function Button({
   className,
@@ -42,6 +42,7 @@ export function Button({
   size,
   asChild = false,
   loading = false,
+  loadingLabel,
   disabledReason,
   disabled,
   children,
@@ -75,7 +76,7 @@ export function Button({
       ) : (
         <>
           {loading && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {children}
+          {loading && loadingLabel ? loadingLabel : children}
         </>
       )}
     </Comp>

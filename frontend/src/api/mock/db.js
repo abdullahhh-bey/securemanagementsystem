@@ -12,14 +12,17 @@ const DAY = 24 * HOUR
 
 const at = (offsetMs) => new Date(serverNow() + offsetMs).toISOString()
 
-const user = (id, name, email, role, password, isActive = true, daysAgo = 30) => ({
+/** Aligns with prisma User: fullName; `name` kept as a display alias for existing UI. */
+const user = (id, fullName, email, role, password, isActive = true, daysAgo = 30) => ({
   id,
-  name,
+  fullName,
+  name: fullName,
   email,
   role,
   password,
   isActive,
   createdAt: at(-daysAgo * DAY),
+  updatedAt: at(-daysAgo * DAY),
 })
 
 export const users = [
@@ -180,7 +183,10 @@ export const nextId = (prefix) => `${prefix}_${++sequence}`
 
 // --- shared helpers --------------------------------------------------------
 
-export const publicUser = ({ password: _password, ...rest }) => rest
+export const publicUser = ({ password: _password, mustChangePassword: _mcp, ...rest }) => {
+  const fullName = rest.fullName || rest.name || ''
+  return { ...rest, fullName, name: fullName }
+}
 
 export function currentUser() {
   const id = getSessionUserId()
@@ -210,9 +216,16 @@ export function accessStatus(e, now = serverNow()) {
 
 export function toExamDto(e) {
   const { ownerId, published: _published, ...rest } = e
+  const owner = users.find((u) => u.id === ownerId)
   return {
     ...rest,
-    createdBy: users.find((u) => u.id === ownerId)?.name ?? 'Unknown',
+    // prisma field names (+ legacy aliases already present as startAt/endAt)
+    startsAt: e.startAt,
+    endsAt: e.endAt,
+    ownerId,
+    randomizeQuestions: Boolean(e.settings?.shuffleQuestions),
+    randomizeOptions: Boolean(e.settings?.shuffleOptions),
+    createdBy: owner?.fullName || owner?.name || 'Unknown',
     status: examStatus(e),
     candidateCount: enrollments.get(e.id)?.size ?? 0,
   }

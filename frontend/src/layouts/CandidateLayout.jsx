@@ -5,5 +5,5 @@ import { CANDIDATE_THEME } from './themes'
 const NAV = [{ to: '/candidate', label: 'My Exams', icon: BookOpenCheck }]
 
 export default function CandidateLayout() {
-  return <AppShell nav={NAV} areaLabel="Candidate portal" theme={CANDIDATE_THEME} />
+  return <AppShell nav={NAV} areaLabel="Student" theme={CANDIDATE_THEME} changePasswordTo="/candidate/account/password" />
 }

@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { AlertTriangle, Megaphone, Pause, Play, Radio, Shield, TriangleAlert, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input, Textarea } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { IncidentDrawer } from '@/components/monitor/IncidentDrawer'
 import { estimateServerNow, formatAgo, formatSpan, useTick } from '@/components/monitor/time'
+import { SectionNav } from '@/components/SectionNav'
 import { StatusBadge } from '@/components/StatusBadge'
 import {
   useAnnouncements,
@@ -67,16 +67,13 @@ function LiveSection({ examId, examStatus }) {
   const [polling, setPolling] = useState(true)
   const [incidentAttempt, setIncidentAttempt] = useState(null)
   const tick = useTick(1000)
-  const receivedAtRef = useRef(Date.now())
 
   const live = examStatus === 'PUBLISHED' || examStatus === 'ONGOING'
   const monitor = useMonitor(examId, { enabled: true, polling: live && polling })
 
-  useEffect(() => {
-    if (monitor.data) receivedAtRef.current = Date.now()
-  }, [monitor.dataUpdatedAt, monitor.data])
-
-  const serverNow = estimateServerNow(monitor.data?.serverTime, receivedAtRef.current, tick)
+  // TanStack's dataUpdatedAt is the device clock when this payload arrived; between polls we advance with `tick`.
+  const receivedAt = monitor.dataUpdatedAt || tick
+  const serverNow = estimateServerNow(monitor.data?.serverTime, receivedAt, tick)
 
   const columns = [
     {
@@ -513,32 +510,27 @@ function DisruptionsSection({ examId }) {
   )
 }
 
-export function MonitorTab({ exam }) {
+/**
+ * @param {{ exam: object, view?: 'live' | 'announcements' | 'disruptions' }} props
+ */
+export function MonitorTab({ exam, view = 'live' }) {
+  const base = `/examiner/exams/${exam.id}/monitor`
+  const items = [
+    { to: base, label: 'Live', end: true },
+    { to: `${base}/announcements`, label: 'Announcements' },
+    { to: `${base}/disruptions`, label: 'Disruptions' },
+  ]
+
   return (
-    <Tabs defaultValue="live" className="gap-0">
-      <TabsList aria-label="Monitor views">
-        <TabsTrigger value="live">
-          <Radio aria-hidden="true" />
-          Live
-        </TabsTrigger>
-        <TabsTrigger value="announcements">
-          <Megaphone aria-hidden="true" />
-          Announcements
-        </TabsTrigger>
-        <TabsTrigger value="disruptions">
-          <Shield aria-hidden="true" />
-          Failure resilience
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="live">
-        <LiveSection examId={exam.id} examStatus={exam.status} />
-      </TabsContent>
-      <TabsContent value="announcements">
+    <div>
+      <SectionNav items={items} />
+      {view === 'announcements' ? (
         <AnnouncementsSection examId={exam.id} examStatus={exam.status} />
-      </TabsContent>
-      <TabsContent value="disruptions">
+      ) : view === 'disruptions' ? (
         <DisruptionsSection examId={exam.id} />
-      </TabsContent>
-    </Tabs>
+      ) : (
+        <LiveSection examId={exam.id} examStatus={exam.status} />
+      )}
+    </div>
   )
 }

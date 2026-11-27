@@ -9,11 +9,10 @@ import { TopBar } from './TopBar'
 import { cn } from '@/lib/utils'
 
 /**
- * Shared frame for the three role layouts. A layout only supplies `nav`,
- * `areaLabel` and a `theme` (see src/layouts) - structure, landmarks, the
- * mobile drawer and focus handling live here once.
+ * Shared frame for role layouts. Supplies landmarks, mobile drawer,
+ * equal content padding (via theme), and page-enter motion.
  */
-export function AppShell({ nav, areaLabel, theme }) {
+export function AppShell({ nav, areaLabel, theme, changePasswordTo }) {
   const { pathname } = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const mainRef = useRef(null)
@@ -21,7 +20,6 @@ export function AppShell({ nav, areaLabel, theme }) {
   const menuButtonRef = useRef(null)
   const navigated = useRef(false)
 
-  // After client-side navigation: close the drawer, scroll up, move focus to <main>.
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false
@@ -37,18 +35,15 @@ export function AppShell({ nav, areaLabel, theme }) {
       <SkipLink />
       <div className={cn('grid min-h-dvh grid-cols-1', theme.gridCols)}>
         <aside className={cn('sticky top-0 hidden h-dvh overflow-y-auto lg:block', theme.sidebar)}>
-          <SidebarNav nav={nav} theme={theme} areaLabel={areaLabel} />
+          <SidebarNav nav={nav} theme={theme} areaLabel={areaLabel} changePasswordTo={changePasswordTo} />
         </aside>
 
         <div className="flex min-w-0 flex-col">
           <TopBar theme={theme} onOpenMenu={() => setDrawerOpen(true)} menuOpen={drawerOpen} menuButtonRef={menuButtonRef} />
-          <main
-            id="main-content"
-            ref={mainRef}
-            tabIndex={-1}
-            className={cn('mx-auto w-full flex-1', theme.content)}
-          >
-            <Outlet />
+          <main id="main-content" ref={mainRef} tabIndex={-1} className={cn('w-full flex-1', theme.content)}>
+            <div key={pathname} className="page-enter mx-auto w-full max-w-6xl">
+              <Outlet />
+            </div>
           </main>
           <AppFooter />
         </div>
@@ -60,7 +55,6 @@ export function AppShell({ nav, areaLabel, theme }) {
           <DialogPrimitive.Content
             aria-describedby={undefined}
             onCloseAutoFocus={(event) => {
-              // Return focus to the menu button, unless the drawer closed because of navigation (focus goes to <main>).
               event.preventDefault()
               if (navigated.current) navigated.current = false
               else menuButtonRef.current?.focus()
@@ -71,10 +65,16 @@ export function AppShell({ nav, areaLabel, theme }) {
             )}
           >
             <DialogPrimitive.Title className="sr-only">{areaLabel} menu</DialogPrimitive.Title>
-            <SidebarNav nav={nav} theme={theme} areaLabel={areaLabel} onNavigate={() => {
-              navigated.current = true
-              setDrawerOpen(false)
-            }} />
+            <SidebarNav
+              nav={nav}
+              theme={theme}
+              areaLabel={areaLabel}
+              changePasswordTo={changePasswordTo}
+              onNavigate={() => {
+                navigated.current = true
+                setDrawerOpen(false)
+              }}
+            />
             <DialogPrimitive.Close
               aria-label="Close navigation menu"
               className={cn('absolute right-3 top-4 inline-flex size-9 items-center justify-center rounded-md', theme.closeButton)}

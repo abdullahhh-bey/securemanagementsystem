@@ -29,7 +29,12 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isPending}>
             {cancelLabel}
           </Button>
-          <Button variant={tone === 'danger' ? 'danger' : 'primary'} loading={isPending} onClick={onConfirm}>
+          <Button
+            variant={tone === 'danger' ? 'danger' : 'primary'}
+            loading={isPending}
+            loadingLabel="Working…"
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>

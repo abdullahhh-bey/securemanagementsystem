@@ -218,7 +218,7 @@ export function QuestionsTab({ exam }) {
               id: 'difficulty',
               label: 'Difficulty',
               options: [{ value: '', label: 'Any difficulty' }, ...DIFFICULTY_OPTIONS],
-              match: (q, value) => q.difficulty === value,
+              match: (q, value) => String(q.difficulty).toLowerCase() === String(value).toLowerCase(),
             },
           ]}
           initialSort={{ key: 'topic', dir: 'asc' }}

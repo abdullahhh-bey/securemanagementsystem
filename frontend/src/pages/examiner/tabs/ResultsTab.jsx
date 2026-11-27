@@ -1,12 +1,13 @@
 import { lazy, Suspense, useMemo } from 'react'
 import { BarChart3, Gauge, Scale, TrendingDown, TrendingUp, Users } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartCard } from '@/components/ChartCard'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { DownloadButton } from '@/components/report/DownloadButton'
 import { VerificationPanel } from '@/components/report/VerificationPanel'
+import { SectionNav } from '@/components/SectionNav'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -50,11 +51,14 @@ function difficultyTakeaway(questions) {
   return `${mismatches.length} question${mismatches.length === 1 ? '' : 's'} (${names}${more}) performed differently than their declared difficulty.`
 }
 
-export function ResultsTab({ exam }) {
+/**
+ * @param {{ exam: object, view?: 'scores' | 'analytics' | 'fairness' | 'report' }} props
+ */
+export function ResultsTab({ exam, view = 'scores' }) {
   const results = useResults(exam.id)
-  const analytics = useQuestionAnalytics(exam.id, { enabled: results.data?.state !== 'NOT_READY' })
-  const fairness = useFairness(exam.id)
-  const report = useExamReportPreview(exam.id, { enabled: results.data?.state !== 'NOT_READY' })
+  const analytics = useQuestionAnalytics(exam.id, { enabled: results.data?.state !== 'NOT_READY' && (view === 'analytics' || view === 'scores') })
+  const fairness = useFairness(exam.id, { enabled: view === 'fairness' })
+  const report = useExamReportPreview(exam.id, { enabled: results.data?.state !== 'NOT_READY' && view === 'report' })
 
   const questions = analytics.data?.questions ?? []
   const distribution = results.data?.distribution ?? []
@@ -62,6 +66,13 @@ export function ResultsTab({ exam }) {
   const state = results.data?.state
   const notReady = state === 'NOT_READY'
   const exportBlocked = notReady ? 'Results can be exported once the exam has finished.' : undefined
+  const base = `/examiner/exams/${exam.id}/results`
+  const navItems = [
+    { to: base, label: 'Scores', end: true },
+    { to: `${base}/analytics`, label: 'Analytics' },
+    { to: `${base}/fairness`, label: 'Fairness' },
+    { to: `${base}/report`, label: 'Report' },
+  ]
 
   const resultsColumns = useMemo(
     () => [
@@ -134,38 +145,98 @@ export function ResultsTab({ exam }) {
   )
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-base font-semibold">Results and analytics</h2>
-          <p className="text-sm text-muted">Scores, question performance and paper balance for this exam.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionNav items={navItems} className="mb-0" />
+        <div className="flex flex-wrap items-center gap-2">
           {state && <StatusBadge kind="results" status={state} />}
-          {results.data?.provisional && state !== 'PUBLISHED' && (
-            <p className="rounded-md border border-warning/30 bg-warning-soft px-2 py-1 text-xs font-medium text-warning">Scores are provisional until you publish.</p>
-          )}
           {results.data?.publishedAt && (
             <p className="text-xs text-muted">
               Published <span className="num">{formatDateTime(results.data.publishedAt)}</span>
             </p>
           )}
         </div>
-      </header>
+      </div>
 
       {notReady ? (
-        <EmptyState
-          icon={BarChart3}
-          title="Results are not ready yet"
-          description="Analytics appear after the exam closes and attempts are submitted."
-        />
+        <EmptyState icon={BarChart3} title="Results are not ready yet" />
+      ) : view === 'analytics' ? (
+        <div className="space-y-6">
+          <ChartCard title="Most skipped" takeaway={topSkippedTakeaway(questions)} isLoading={analytics.isPending} error={analytics.error} onRetry={analytics.refetch} isRetrying={analytics.isRefetching} empty={questions.length === 0} emptyText="No data yet.">
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <SkippedQuestionsChart questions={questions} />
+            </Suspense>
+          </ChartCard>
+          <ChartCard title="Most commonly wrong" takeaway={topWrongTakeaway(questions)} isLoading={analytics.isPending} error={analytics.error} onRetry={analytics.refetch} isRetrying={analytics.isRefetching} empty={questions.length === 0} emptyText="No data yet.">
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <WrongQuestionsChart questions={questions} />
+            </Suspense>
+          </ChartCard>
+          <ChartCard title="Declared vs observed difficulty" takeaway={difficultyTakeaway(questions)} isLoading={analytics.isPending} error={analytics.error} onRetry={analytics.refetch} isRetrying={analytics.isRefetching} empty={questions.length === 0} emptyText="No data yet." chartHeight="h-72">
+            <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+              <DifficultyMismatchChart questions={questions} />
+            </Suspense>
+          </ChartCard>
+        </div>
+      ) : view === 'fairness' ? (
+        <Card as="section" aria-labelledby="fairness-heading">
+          <CardHeader>
+            <CardTitle id="fairness-heading" className="flex items-center gap-2">
+              <Scale className="size-5 text-primary" aria-hidden="true" />
+              Paper fairness
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {fairness.isPending ? (
+              <Skeleton className="h-24 w-full" />
+            ) : fairness.error ? (
+              <ErrorState compact error={fairness.error} onRetry={fairness.refetch} isRetrying={fairness.isRefetching} />
+            ) : (
+              <>
+                {fairness.data?.note ? <p className="text-sm text-ink">{fairness.data.note}</p> : null}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard label="Mean difficulty" value={fairness.data?.mean?.toFixed(2) ?? '—'} tone="brand" />
+                  <StatCard label="Variance" value={fairness.data?.variance?.toFixed(4) ?? '—'} />
+                  <StatCard label="Spread" value={fairness.data?.spread?.toFixed(2) ?? '—'} tone={fairness.data?.withinTolerance ? 'success' : 'warning'} />
+                  <StatCard label="Within tolerance" value={fairness.data?.withinTolerance ? 'Yes' : 'No'} tone={fairness.data?.withinTolerance ? 'success' : 'danger'} />
+                </div>
+                <DataTable
+                  caption="Per-candidate paper difficulty"
+                  columns={fairnessColumns}
+                  rows={fairness.data?.papers}
+                  rowKey={(p) => p.attemptId}
+                  pageSize={6}
+                  emptyState={<EmptyState title="No papers issued" />}
+                />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      ) : view === 'report' ? (
+        <Card as="section" aria-labelledby="report-heading">
+          <CardHeader>
+            <CardTitle id="report-heading">Exam report</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {report.isPending ? (
+              <Skeleton className="h-40 w-full" />
+            ) : report.error ? (
+              <EmptyState title="Report unavailable" description={report.error.message} />
+            ) : report.data ? (
+              <>
+                <VerificationPanel report={report.data} />
+                <DownloadButton label="Download PDF" icon="pdf" variant="primary" action={() => downloadExamReport(exam.id)} disabledReason={exportBlocked} />
+              </>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : (
         <>
-          <section aria-label="Summary statistics" className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Average score" value={`${summary?.average ?? 0}%`} icon={Gauge} tone="brand" loading={results.isPending} hint={`${summary?.count ?? 0} candidates`} />
+          <section aria-label="Summary" className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Average" value={`${summary?.average ?? 0}%`} icon={Gauge} tone="brand" loading={results.isPending} />
             <StatCard label="Highest" value={`${summary?.highest ?? 0}%`} icon={TrendingUp} tone="success" loading={results.isPending} />
             <StatCard label="Lowest" value={`${summary?.lowest ?? 0}%`} icon={TrendingDown} tone="warning" loading={results.isPending} />
-            <StatCard label="Pass rate" value={`${summary?.passRate ?? 0}%`} icon={Users} tone="info" loading={results.isPending} hint={`Pass threshold ${summary?.passPercent ?? 50}%`} />
+            <StatCard label="Pass rate" value={`${summary?.passRate ?? 0}%`} icon={Users} tone="info" loading={results.isPending} />
           </section>
 
           <ChartCard
@@ -183,140 +254,28 @@ export function ResultsTab({ exam }) {
             </Suspense>
           </ChartCard>
 
-          <section aria-labelledby="candidates-heading">
-            <h2 id="candidates-heading" className="mb-3 text-base font-semibold">
-              Candidate scores
-            </h2>
-            <DataTable
-              caption="Candidate scores"
-              columns={resultsColumns}
-              rows={results.data?.rows}
-              rowKey={(r) => r.attemptId}
-              isLoading={results.isPending}
-              error={results.error}
-              onRetry={results.refetch}
-              isRetrying={results.isRefetching}
-              pageSize={8}
-              searchText={(r) => `${r.candidate.name} ${r.candidate.email}`}
-              searchLabel="Search candidates"
-              searchPlaceholder="Search by name or email"
-              initialSort={{ key: 'percent', dir: 'desc' }}
-              emptyState={<EmptyState icon={Users} title="No submissions" description="Nobody submitted an attempt for this exam." />}
-              toolbarActions={
-                <div className="flex flex-wrap gap-2">
-                  <DownloadButton label="Export CSV" action={() => exportResults(exam.id, 'csv')} disabledReason={exportBlocked} />
-                  <DownloadButton label="Export PDF" icon="pdf" action={() => exportResults(exam.id, 'pdf')} disabledReason={exportBlocked} />
-                </div>
-              }
-            />
-          </section>
-
-          <div className="grid gap-6 lg:grid-cols-1">
-            <ChartCard
-              title="Most skipped questions"
-              takeaway={topSkippedTakeaway(questions)}
-              isLoading={analytics.isPending}
-              error={analytics.error}
-              onRetry={analytics.refetch}
-              isRetrying={analytics.isRefetching}
-              empty={questions.length === 0}
-              emptyText="No question data yet."
-            >
-              <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-                <SkippedQuestionsChart questions={questions} />
-              </Suspense>
-            </ChartCard>
-
-            <ChartCard
-              title="Most commonly wrong"
-              takeaway={topWrongTakeaway(questions)}
-              isLoading={analytics.isPending}
-              error={analytics.error}
-              onRetry={analytics.refetch}
-              isRetrying={analytics.isRefetching}
-              empty={questions.length === 0}
-              emptyText="No question data yet."
-            >
-              <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-                <WrongQuestionsChart questions={questions} />
-              </Suspense>
-            </ChartCard>
-
-            <ChartCard
-              title="Declared vs observed difficulty"
-              takeaway={difficultyTakeaway(questions)}
-              isLoading={analytics.isPending}
-              error={analytics.error}
-              onRetry={analytics.refetch}
-              isRetrying={analytics.isRefetching}
-              empty={questions.length === 0}
-              emptyText="No question data yet."
-              chartHeight="h-72"
-            >
-              <Suspense fallback={<Skeleton className="h-72 w-full" />}>
-                <DifficultyMismatchChart questions={questions} />
-              </Suspense>
-            </ChartCard>
-          </div>
-
-          <Card as="section" aria-labelledby="fairness-heading">
-            <CardHeader>
-              <CardTitle id="fairness-heading" className="flex items-center gap-2">
-                <Scale className="size-5 text-primary" aria-hidden="true" />
-                Paper fairness
-              </CardTitle>
-              <CardDescription>{fairness.data?.method}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {fairness.isPending ? (
-                <Skeleton className="h-24 w-full" />
-              ) : fairness.error ? (
-                <ErrorState compact error={fairness.error} onRetry={fairness.refetch} isRetrying={fairness.isRefetching} />
-              ) : (
-                <>
-                  <p className="text-sm text-ink">{fairness.data?.note}</p>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard label="Mean difficulty" value={fairness.data?.mean?.toFixed(2) ?? '—'} tone="brand" />
-                    <StatCard label="Variance" value={fairness.data?.variance?.toFixed(4) ?? '—'} />
-                    <StatCard label="Spread" value={fairness.data?.spread?.toFixed(2) ?? '—'} tone={fairness.data?.withinTolerance ? 'success' : 'warning'} />
-                    <StatCard
-                      label="Within tolerance"
-                      value={fairness.data?.withinTolerance ? 'Yes' : 'No'}
-                      tone={fairness.data?.withinTolerance ? 'success' : 'danger'}
-                      hint={`Tolerance ±${fairness.data?.tolerance?.toFixed(2)}`}
-                    />
-                  </div>
-                  <DataTable
-                    caption="Per-candidate paper difficulty"
-                    columns={fairnessColumns}
-                    rows={fairness.data?.papers}
-                    rowKey={(p) => p.attemptId}
-                    pageSize={6}
-                    emptyState={<EmptyState title="No papers issued" description="Fairness is calculated from papers candidates actually received." />}
-                  />
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card as="section" aria-labelledby="report-heading">
-            <CardHeader>
-              <CardTitle id="report-heading">Exam report (PDF)</CardTitle>
-              <CardDescription>Official summary with a verification ID candidates can check.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {report.isPending ? (
-                <Skeleton className="h-40 w-full" />
-              ) : report.error ? (
-                <EmptyState title="Report unavailable" description={report.error.message} />
-              ) : report.data ? (
-                <>
-                  <VerificationPanel report={report.data} />
-                  <DownloadButton label="Download PDF report" icon="pdf" variant="primary" action={() => downloadExamReport(exam.id)} disabledReason={exportBlocked} />
-                </>
-              ) : null}
-            </CardContent>
-          </Card>
+          <DataTable
+            caption="Candidate scores"
+            columns={resultsColumns}
+            rows={results.data?.rows}
+            rowKey={(r) => r.attemptId}
+            isLoading={results.isPending}
+            error={results.error}
+            onRetry={results.refetch}
+            isRetrying={results.isRefetching}
+            pageSize={8}
+            searchText={(r) => `${r.candidate.name} ${r.candidate.email}`}
+            searchLabel="Search candidates"
+            searchPlaceholder="Search by name or email"
+            initialSort={{ key: 'percent', dir: 'desc' }}
+            emptyState={<EmptyState icon={Users} title="No submissions" />}
+            toolbarActions={
+              <div className="flex flex-wrap gap-2">
+                <DownloadButton label="CSV" action={() => exportResults(exam.id, 'csv')} disabledReason={exportBlocked} />
+                <DownloadButton label="PDF" icon="pdf" action={() => exportResults(exam.id, 'pdf')} disabledReason={exportBlocked} />
+              </div>
+            }
+          />
         </>
       )}
     </div>

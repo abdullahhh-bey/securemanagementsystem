@@ -262,7 +262,7 @@ export function ImportDialog({
           <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)} disabled={importing}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleImport} disabled={importing || validCount === 0} loading={importing}>
+          <Button type="button" onClick={handleImport} disabled={importing || validCount === 0} loading={importing} loadingLabel="Importing…">
             <Upload className="size-4" aria-hidden="true" />
             Import {validCount} valid row{validCount === 1 ? '' : 's'}
           </Button>

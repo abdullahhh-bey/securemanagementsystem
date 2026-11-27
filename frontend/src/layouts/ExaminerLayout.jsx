@@ -8,5 +8,5 @@ const NAV = [
 ]
 
 export default function ExaminerLayout() {
-  return <AppShell nav={NAV} areaLabel="Examiner workspace" theme={NAVY_THEME} />
+  return <AppShell nav={NAV} areaLabel="Teacher" theme={NAVY_THEME} changePasswordTo="/examiner/account/password" />
 }

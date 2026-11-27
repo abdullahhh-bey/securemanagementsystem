@@ -98,7 +98,6 @@ export default function ExaminerDashboardPage() {
     <>
       <PageHeader
         title={`Welcome back, ${user.name.replace(/^(Dr|Prof)\.?\s+/i, '').split(' ')[0]}`}
-        description="Here is where your exams stand right now."
         actions={
           <Button asChild>
             <Link to="/examiner/exams/new">

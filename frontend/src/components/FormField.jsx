@@ -19,7 +19,7 @@ export function FormField({ label, error, hint, required = false, className, chi
   const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('flex flex-col gap-1.5', className)}>
       <Label htmlFor={id}>
         {label}
         {required && (
@@ -29,19 +29,19 @@ export function FormField({ label, error, hint, required = false, className, chi
         )}
       </Label>
       {children({ id, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy, 'aria-required': required || undefined })}
-      {hint && (
-        <p id={hintId} className="text-sm text-muted">
+      {hint ? (
+        <p id={hintId} className="text-xs text-muted">
           {hint}
         </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} role="alert" className="flex items-start gap-1.5 text-sm font-medium text-danger">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      ) : (
+        <span id={errorId} className="sr-only" />
       )}
-      <p id={errorId} aria-live="polite" className={cn('flex items-start gap-1.5 text-sm font-medium text-danger', !error && 'hidden')}>
-        {error && (
-          <>
-            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{error}</span>
-          </>
-        )}
-      </p>
     </div>
   )
 }

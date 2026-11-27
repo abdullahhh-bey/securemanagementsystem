@@ -1,6 +1,6 @@
+import { normalizeDifficulty, normalizeQuestionType } from '@/lib/schema'
+
 const ROLES = ['ADMIN', 'EXAMINER', 'CANDIDATE']
-const TYPES = ['MCQ_SINGLE', 'MCQ_MULTI', 'WRITTEN']
-const DIFFICULTIES = ['easy', 'medium', 'hard']
 const RULES = ['ALL_OR_NOTHING', 'PARTIAL']
 
 const pick = (values, ...keys) => {
@@ -18,10 +18,11 @@ function normalizeType(raw) {
     .trim()
     .toUpperCase()
     .replace(/[\s-]+/g, '_')
-  if (typeRaw === 'SINGLE' || typeRaw === 'MCQSINGLE') return 'MCQ_SINGLE'
-  if (typeRaw === 'MULTI' || typeRaw === 'MCQMULTI' || typeRaw === 'MULTIPLE') return 'MCQ_MULTI'
+  if (typeRaw === 'SINGLE' || typeRaw === 'MCQSINGLE' || typeRaw === 'MCQ_SINGLE') return 'SINGLE_CHOICE'
+  if (typeRaw === 'MULTI' || typeRaw === 'MCQMULTI' || typeRaw === 'MULTIPLE' || typeRaw === 'MCQ_MULTI') return 'MULTIPLE_SELECT'
   if (typeRaw === 'WRITTEN' || typeRaw === 'ESSAY' || typeRaw === 'TEXT') return 'WRITTEN'
-  return typeRaw
+  if (typeRaw === 'SINGLE_CHOICE' || typeRaw === 'MULTIPLE_SELECT') return typeRaw
+  return normalizeQuestionType(typeRaw) ?? typeRaw
 }
 
 function parseOptionTexts(values) {
@@ -80,28 +81,30 @@ function applyCorrect(options, values) {
   return next
 }
 
-/** Client-side validation that mirrors the server question rules (plain messages for import rows). */
+/** Client-side validation aligned with prisma QuestionType / QuestionDifficulty. */
 function validateQuestionInput(input) {
   const messages = []
-  const type = input.type
-  if (!TYPES.includes(type)) messages.push('type must be MCQ_SINGLE, MCQ_MULTI or WRITTEN')
+  const type = normalizeQuestionType(input.type) ?? normalizeType(input.type)
+  const difficulty = normalizeDifficulty(input.difficulty)
+  if (!type) messages.push('type must be SINGLE_CHOICE, MULTIPLE_SELECT or WRITTEN')
   if (!input.text?.trim()) messages.push('text is required')
   if (!input.topic?.trim()) messages.push('topic is required')
-  if (!DIFFICULTIES.includes(input.difficulty)) messages.push('difficulty must be easy, medium or hard')
+  if (!difficulty) messages.push('difficulty must be easy, medium or hard')
   if (!(Number(input.defaultMarks) > 0)) messages.push('marks must be more than zero')
 
   let options = []
   let markingRule = null
   let penalty = 0
-  if (type === 'MCQ_SINGLE' || type === 'MCQ_MULTI') {
+  const isChoice = type === 'SINGLE_CHOICE' || type === 'MULTIPLE_SELECT'
+  if (isChoice) {
     options = (input.options ?? [])
       .map((o) => ({ text: String(o.text ?? '').trim(), isCorrect: Boolean(o.isCorrect) }))
       .filter((o) => o.text)
     const correct = options.filter((o) => o.isCorrect).length
     if (options.length < 2) messages.push('add at least two answer options')
     else if (correct === 0) messages.push('mark at least one option as correct')
-    else if (type === 'MCQ_SINGLE' && correct > 1) messages.push('a single-answer question can have only one correct option')
-    if (type === 'MCQ_MULTI') {
+    else if (type === 'SINGLE_CHOICE' && correct > 1) messages.push('a single-answer question can have only one correct option')
+    if (type === 'MULTIPLE_SELECT') {
       markingRule = input.markingRule || 'ALL_OR_NOTHING'
       if (!RULES.includes(markingRule)) messages.push('markingRule must be ALL_OR_NOTHING or PARTIAL')
       if (markingRule === 'PARTIAL') {
@@ -117,7 +120,7 @@ function validateQuestionInput(input) {
       type,
       text: input.text.trim(),
       topic: input.topic.trim(),
-      difficulty: input.difficulty,
+      difficulty,
       defaultMarks: Number(input.defaultMarks),
       options,
       markingRule,
@@ -137,7 +140,7 @@ export function parseQuestionRecord(record) {
     type,
     text: pick(values, 'text', 'question', 'stem', 'prompt'),
     topic: pick(values, 'topic', 'subject', 'category'),
-    difficulty: pick(values, 'difficulty', 'level').toLowerCase(),
+    difficulty: pick(values, 'difficulty', 'level'),
     defaultMarks: pick(values, 'defaultmarks', 'marks', 'points', 'mark'),
     options,
     markingRule: pick(values, 'markingrule', 'rule').toUpperCase().replace(/[\s-]+/g, '_') || undefined,

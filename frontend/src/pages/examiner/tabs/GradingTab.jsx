@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, ClipboardCheck, Hourglass, ListChecks, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,60 +29,85 @@ function validateScoreInput(raw, max) {
   return null
 }
 
+function GradeForm({ item, onSave, isPending }) {
+  const [scoreInput, setScoreInput] = useState(item.score !== null ? String(item.score) : '')
+  const [feedback, setFeedback] = useState(item.feedback ?? '')
+  const [scoreError, setScoreError] = useState(null)
+
+  const persist = (andNext) => {
+    const clientErr = validateScoreInput(scoreInput, item.question.maxMarks)
+    if (clientErr) {
+      setScoreError(clientErr)
+      return
+    }
+    setScoreError(null)
+    onSave({ item, score: Number(scoreInput), feedback, andNext, onError: setScoreError })
+  }
+
+  return (
+    <div className="space-y-4">
+      <FormField label={`Score (0–${item.question.maxMarks})`} error={scoreError} required>
+        {(field) => (
+          <Input
+            {...field}
+            type="number"
+            inputMode="decimal"
+            min={0}
+            max={item.question.maxMarks}
+            step="0.5"
+            className="num max-w-40"
+            value={scoreInput}
+            onChange={(event) => {
+              setScoreInput(event.target.value)
+              setScoreError(null)
+            }}
+          />
+        )}
+      </FormField>
+      <FormField label="Feedback (optional)">
+        {(field) => (
+          <Textarea {...field} value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={4} placeholder="Short note for the candidate" />
+        )}
+      </FormField>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => persist(false)} loading={isPending}>
+          Save
+        </Button>
+        <Button variant="secondary" onClick={() => persist(true)} loading={isPending}>
+          Save and next <ChevronRight />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function GradingTab({ exam }) {
   const queue = useGradingQueue(exam.id)
   const reviewEnabled = Boolean(queue.data && queue.data.state !== 'NOT_READY')
   const review = useResultsReview(exam.id, { enabled: reviewEnabled })
   const [publishOpen, setPublishOpen] = useState(false)
 
-  const items = queue.data?.items ?? []
+  const items = useMemo(() => queue.data?.items ?? [], [queue.data])
   const [currentKey, setCurrentKey] = useState(null)
-  const current = useMemo(() => items.find((i) => i.key === currentKey) ?? items[0] ?? null, [items, currentKey])
-
-  const [scoreInput, setScoreInput] = useState('')
-  const [feedback, setFeedback] = useState('')
-  const [scoreError, setScoreError] = useState(null)
-
-  useEffect(() => {
-    if (!items.length) {
-      setCurrentKey(null)
-      return
-    }
-    if (!currentKey || !items.some((i) => i.key === currentKey)) {
-      const first = items.find((i) => i.score === null) ?? items[0]
-      setCurrentKey(first.key)
-    }
+  const current = useMemo(() => {
+    if (!items.length) return null
+    if (currentKey && items.some((i) => i.key === currentKey)) return items.find((i) => i.key === currentKey)
+    return items.find((i) => i.score === null) ?? items[0]
   }, [items, currentKey])
 
-  useEffect(() => {
-    if (!current) return
-    setScoreInput(current.score !== null ? String(current.score) : '')
-    setFeedback(current.feedback ?? '')
-    setScoreError(null)
-  }, [current])
-
-  const saveGrade = useSaveGrade(exam.id, {
-    onError: (err) => {
-      const message = typeof err.details === 'object' && err.details?.score ? err.details.score : err.message
-      setScoreError(message)
-    },
-  })
-
+  const saveGrade = useSaveGrade(exam.id)
   const publish = usePublishResults(exam.id, { onSuccess: () => setPublishOpen(false) })
 
-  const persist = (andNext) => {
-    if (!current) return
-    const clientErr = validateScoreInput(scoreInput, current.question.maxMarks)
-    if (clientErr) {
-      setScoreError(clientErr)
-      return
-    }
-    setScoreError(null)
+  const handleSaveGrade = ({ item, score, feedback, andNext, onError }) => {
     saveGrade.mutate(
-      { item: current, score: Number(scoreInput), feedback },
+      { item, score, feedback },
       {
         onSuccess: () => {
-          if (andNext) setCurrentKey(nextUngradedAfter(items, current.key)?.key ?? current.key)
+          if (andNext) setCurrentKey(nextUngradedAfter(items, item.key)?.key ?? item.key)
+        },
+        onError: (err) => {
+          const message = typeof err.details === 'object' && err.details?.score ? err.details.score : err.message
+          onError?.(message)
         },
       },
     )
@@ -228,51 +253,13 @@ export function GradingTab({ exam }) {
               </>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label={`Score (out of ${current?.question.maxMarks ?? '—'})`} error={scoreError} required>
-                {(field) => (
-                  <Input
-                    {...field}
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    max={current?.question.maxMarks}
-                    step="any"
-                    value={scoreInput}
-                    onChange={(e) => {
-                      setScoreInput(e.target.value)
-                      setScoreError(null)
-                    }}
-                    disabled={saveGrade.isPending || state === 'PUBLISHED'}
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <FormField label="Feedback for the candidate" hint="Optional. Shown on their result when published.">
-              {(field) => (
-                <Textarea
-                  {...field}
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  disabled={saveGrade.isPending || state === 'PUBLISHED'}
-                />
-              )}
-            </FormField>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Button loading={saveGrade.isPending} onClick={() => persist(false)} disabledReason={state === 'PUBLISHED' ? 'Results are already published.' : undefined}>
-                Save
-              </Button>
-              <Button
-                variant="secondary"
-                loading={saveGrade.isPending}
-                onClick={() => persist(true)}
-                disabledReason={state === 'PUBLISHED' ? 'Results are already published.' : undefined}
-              >
-                Save and next
-              </Button>
-            </div>
+            {current && state !== 'PUBLISHED' ? (
+              <GradeForm key={current.key} item={current} onSave={handleSaveGrade} isPending={saveGrade.isPending} />
+            ) : current && state === 'PUBLISHED' ? (
+              <p className="rounded-lg border border-border bg-sunken p-3 text-sm text-muted">
+                Results are published. Scores can only change through a resolved dispute.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       )}

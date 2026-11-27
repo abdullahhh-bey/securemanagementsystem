@@ -61,10 +61,7 @@ export default function AdminExamsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Exams"
-        description="Every exam in the system, across all examiners."
-      />
+      <PageHeader title="Exams" />
       <DataTable
         caption="All exams"
         columns={COLUMNS}
