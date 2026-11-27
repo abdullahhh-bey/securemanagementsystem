@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // CREATE QUESTION
 const createQuestion = async (req, res) => {
@@ -127,6 +128,21 @@ const createQuestion = async (req, res) => {
             },
           },
         },
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.QUESTION_CREATED,
+      entityType: AuditEntityType.QUESTION,
+      entityId: question.id,
+      newValues: {
+        categoryId: question.categoryId,
+        type,
+        difficulty,
+        defaultMarks,
+        optionCount: questionOptions.length,
+        versionNumber: 1,
       },
     });
 
@@ -374,6 +390,21 @@ const createQuestionVersion = async (req, res) => {
             position: "asc",
           },
         },
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.QUESTION_VERSION_CREATED,
+      entityType: AuditEntityType.QUESTION_VERSION,
+      entityId: version.id,
+      newValues: {
+        questionId,
+        versionNumber: version.versionNumber,
+        type,
+        difficulty,
+        defaultMarks,
+        optionCount: questionOptions.length,
       },
     });
 

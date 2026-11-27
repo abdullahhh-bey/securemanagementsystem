@@ -4,6 +4,14 @@ function createAdminController(service, getActorId) {
       res.json(await service.listUsers(req.validatedQuery));
     },
 
+    async listExams(req, res) {
+      res.json({ exams: await service.listExams() });
+    },
+
+    async listAuditLog(req, res) {
+      res.json(await service.listAuditLog(req.validatedQuery ?? {}));
+    },
+
     async getUser(req, res) {
       res.json({ data: await service.getUser(req.validatedParams.id) });
     },

@@ -215,7 +215,7 @@ export default function AdminUsersPage({ roleFilter }) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         defaultRole={config.defaultRole}
-        allowedRoles={config.allowedRoles}
+        allowedRoles={config.allowedRoles.filter((role) => role !== ROLES.ADMIN)}
         title={config.createLabel}
       />
 
@@ -234,7 +234,11 @@ export default function AdminUsersPage({ roleFilter }) {
         }}
       />
 
-      <EditRoleDialog user={roleTarget} onOpenChange={(open) => !open && setRoleTarget(null)} allowedRoles={config.allowedRoles} />
+      <EditRoleDialog
+        user={roleTarget}
+        onOpenChange={(open) => !open && setRoleTarget(null)}
+        allowedRoles={config.allowedRoles.filter((role) => role !== ROLES.ADMIN)}
+      />
 
       <ConfirmDialog
         open={Boolean(toggleTarget)}

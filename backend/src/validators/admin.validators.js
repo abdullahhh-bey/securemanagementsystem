@@ -37,7 +37,24 @@ const updateStatusBody = z.object({
   isActive: z.boolean(),
 }).strict();
 
+const optionalIsoDateTime = z
+  .string()
+  .trim()
+  .min(1)
+  .optional()
+  .refine((value) => value === undefined || !Number.isNaN(Date.parse(value)), {
+    message: "Invalid date.",
+  });
+
+const auditLogQuery = z.object({
+  actorId: z.string().uuid().optional(),
+  action: z.string().trim().min(1).max(100).optional(),
+  from: optionalIsoDateTime,
+  to: optionalIsoDateTime,
+}).strict();
+
 export {
+  auditLogQuery,
   createUserBody,
   updateProfileBody,
   updateRoleBody,

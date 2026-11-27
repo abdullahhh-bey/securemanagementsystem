@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // CREATE CATEGORY
 const createCategory = async (req, res) => {
@@ -28,6 +29,17 @@ const createCategory = async (req, res) => {
       data: {
         name: name.trim(),
         description: description?.trim() || null,
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.CATEGORY_CREATED,
+      entityType: AuditEntityType.CATEGORY,
+      entityId: category.id,
+      newValues: {
+        name: category.name,
+        description: category.description,
       },
     });
 
@@ -140,6 +152,21 @@ const updateCategory = async (req, res) => {
       data,
     });
 
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.CATEGORY_UPDATED,
+      entityType: AuditEntityType.CATEGORY,
+      entityId: updatedCategory.id,
+      oldValues: {
+        name: existingCategory.name,
+        description: existingCategory.description,
+      },
+      newValues: {
+        name: updatedCategory.name,
+        description: updatedCategory.description,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       message: "Question category updated successfully.",
@@ -194,6 +221,17 @@ const deleteCategory = async (req, res) => {
 
     await prisma.questionCategory.delete({
       where: { id: categoryId },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.CATEGORY_DELETED,
+      entityType: AuditEntityType.CATEGORY,
+      entityId: categoryId,
+      oldValues: {
+        name: category.name,
+        description: category.description,
+      },
     });
 
     return res.status(200).json({

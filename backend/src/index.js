@@ -1,9 +1,13 @@
 
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import express from "express";
 import cookieParser from "cookie-parser";
 
+import prisma from "../db/db.js";
+import { protect, authorize } from "./middleware/auth.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
+import { createAdminRouter } from "./routes/admin.routes.js";
 import examinerRoutes from "./routes/examiner.routes.js";
 
 import examRoutes from "./routes/exam.routes.js";
@@ -36,8 +40,17 @@ app.get("/", (req, res) => {
   });
 });
 
+const adminRoutes = createAdminRouter({
+  prisma,
+  authenticate: protect,
+  requireAdmin: authorize("ADMIN"),
+  getActorId: (req) => req.user?.id,
+  hashPassword: (password) => bcrypt.hash(password, 12),
+});
+
 // API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/examiner", examinerRoutes);
 app.use("/api/examiner/exams", examRoutes);
 app.use("/api/examiner/question-categories", questionCategoryRoutes);

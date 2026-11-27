@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // GET ALL DISPUTES FOR THE EXAMINER'S EXAMS
 const getExaminerDisputes = async (req, res) => {
@@ -134,6 +135,28 @@ const updateDispute = async (req, res) => {
         resolution: isClosed ? resolution.trim() : null,
         resolvedById: isClosed ? req.user.id : null,
         resolvedAt: isClosed ? new Date() : null,
+      },
+    });
+
+    const disputeAction =
+      status === "UNDER_REVIEW"
+        ? AuditAction.DISPUTE_REVIEW_STARTED
+        : status === "RESOLVED"
+          ? AuditAction.DISPUTE_RESOLVED
+          : AuditAction.DISPUTE_REJECTED;
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: disputeAction,
+      entityType: AuditEntityType.DISPUTE,
+      entityId: updatedDispute.id,
+      oldValues: { status: dispute.status },
+      newValues: {
+        status: updatedDispute.status,
+        hasResolution: Boolean(updatedDispute.resolution),
+      },
+      metadata: {
+        resultId: dispute.resultId,
       },
     });
 

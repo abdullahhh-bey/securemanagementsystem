@@ -1,10 +1,10 @@
+import { normalizeUser } from '@/lib/schema'
 import { USE_MOCK, pick, request } from './client'
 import * as mock from './mock/auth'
-import { normalizeUser } from '@/lib/schema'
 
 /**
  * User (prisma): { id, email, fullName, role: ADMIN|EXAMINER|CANDIDATE, isActive, createdAt, updatedAt }
- * UI may also read `name` as an alias of `fullName`.
+ * UI may also read `name` as an alias of `fullName` (ensured by normalizeUser).
  */
 
 // POST /api/auth/login   { email, password } -> { user }

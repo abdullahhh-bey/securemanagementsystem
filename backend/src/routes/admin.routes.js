@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAdminController } from "../controllers/admin.controller.js";
 import { AdminApiError, createAdminService } from "../services/admin.service.js";
 import {
+  auditLogQuery,
   createUserBody,
   updateProfileBody,
   updateRoleBody,
@@ -117,6 +118,8 @@ function createAdminRouter({ prisma, authenticate, requireAdmin, getActorId, has
 
   router.get("/users", validate("query", userListQuery), controller.listUsers);
   router.get("/users/:id", validate("params", userIdParams), controller.getUser);
+  router.get("/exams", controller.listExams);
+  router.get("/audit", validate("query", auditLogQuery), controller.listAuditLog);
   router.post("/users", validate("body", createUserBody), controller.createUser);
   router.patch(
     "/users/:id",

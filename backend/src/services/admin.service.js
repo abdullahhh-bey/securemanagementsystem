@@ -1,4 +1,11 @@
-import { UserRole } from "@prisma/client";
+import {
+  AttemptMode,
+  EnrollmentStatus,
+  ExamStatus,
+  ResultStatus,
+  UserRole,
+} from "@prisma/client";
+import { mapAuditLogEntry } from "../utils/audit.js";
 
 const publicUserSelect = {
   id: true,
@@ -9,6 +16,55 @@ const publicUserSelect = {
   createdAt: true,
   updatedAt: true,
 };
+
+/**
+ * Aggregate results pipeline for Admin Exam Overview.
+ * Mirrors frontend mock intent (NOT_READY / UNGRADED / GRADED / PUBLISHED)
+ * using Prisma ExamStatus + ResultStatus only.
+ *
+ * - Not COMPLETED → NOT_READY
+ * - Any PENDING_REVIEW → UNGRADED
+ * - Every result PUBLISHED (and at least one) → PUBLISHED
+ * - READY_TO_PUBLISH / WITHHELD / mixed with some PUBLISHED → GRADED
+ * - COMPLETED with no result rows yet → UNGRADED (nothing evaluated)
+ */
+function deriveResultsState(examStatus, resultStatuses) {
+  if (examStatus !== ExamStatus.COMPLETED) return "NOT_READY";
+
+  if (resultStatuses.length === 0) return "UNGRADED";
+
+  if (resultStatuses.every((status) => status === ResultStatus.PUBLISHED)) {
+    return "PUBLISHED";
+  }
+
+  if (resultStatuses.some((status) => status === ResultStatus.PENDING_REVIEW)) {
+    return "UNGRADED";
+  }
+
+  // READY_TO_PUBLISH, WITHHELD, or a mix that is not fully published.
+  return "GRADED";
+}
+
+function mapAdminExam(exam) {
+  const resultStatuses = (exam.attempts ?? [])
+    .map((attempt) => attempt.result?.status)
+    .filter(Boolean);
+
+  return {
+    id: exam.id,
+    title: exam.title,
+    status: exam.status,
+    owner: {
+      id: exam.owner.id,
+      name: exam.owner.fullName,
+    },
+    startAt: exam.startsAt,
+    endAt: exam.endsAt,
+    candidateCount: exam._count.enrollments,
+    questionCount: exam._count.questions,
+    resultsState: deriveResultsState(exam.status, resultStatuses),
+  };
+}
 
 class AdminApiError extends Error {
   constructor(status, code, message, details) {
@@ -245,7 +301,120 @@ function createAdminService({ prisma, hashPassword }) {
     }, { isolationLevel: "Serializable" });
   }
 
-  return { createUser, getUser, listUsers, updateProfile, updateRole, updateStatus };
+  async function listExams() {
+    const exams = await prisma.exam.findMany({
+      orderBy: [{ startsAt: "desc" }, { id: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        _count: {
+          select: {
+            questions: true,
+            enrollments: {
+              where: { status: EnrollmentStatus.ENROLLED },
+            },
+          },
+        },
+        attempts: {
+          where: { mode: AttemptMode.OFFICIAL },
+          select: {
+            result: {
+              select: {
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return exams.map(mapAdminExam);
+  }
+
+  async function listAuditLog(filters = {}) {
+    const where = {
+      ...(filters.actorId ? { actorId: filters.actorId } : {}),
+      ...(filters.action ? { action: filters.action } : {}),
+    };
+
+    if (filters.from || filters.to) {
+      where.createdAt = {
+        ...(filters.from ? { gte: new Date(filters.from) } : {}),
+        ...(filters.to ? { lte: new Date(filters.to) } : {}),
+      };
+    }
+
+    const [rows, filterSource] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: {
+          actor: {
+            select: {
+              id: true,
+              fullName: true,
+              role: true,
+            },
+          },
+        },
+      }),
+      prisma.auditLog.findMany({
+        select: {
+          action: true,
+          actorId: true,
+          actor: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const actors = [
+      ...new Map(
+        filterSource
+          .filter((row) => row.actorId && row.actor)
+          .map((row) => [
+            row.actorId,
+            {
+              id: row.actorId,
+              name: row.actor.fullName,
+            },
+          ]),
+      ).values(),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    const actions = [...new Set(filterSource.map((row) => row.action))].sort();
+
+    return {
+      total: rows.length,
+      entries: rows.map(mapAuditLogEntry),
+      actors,
+      actions,
+    };
+  }
+
+  return {
+    createUser,
+    getUser,
+    listUsers,
+    listExams,
+    listAuditLog,
+    updateProfile,
+    updateRole,
+    updateStatus,
+  };
 }
 
-export { AdminApiError, createAdminService };
+export { AdminApiError, createAdminService, deriveResultsState };

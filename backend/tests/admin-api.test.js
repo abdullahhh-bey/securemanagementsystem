@@ -34,8 +34,13 @@ function createFixture({ secondAdmin = false } = {}) {
     ],
     sessions: [{ userId: examinerId, revokedAt: null }],
     auditLogs: [],
+    exams: [],
+    enrollments: [],
+    examQuestions: [],
+    attempts: [],
     transactionOptions: [],
     listCalls: 0,
+    examListCalls: 0,
     hashCalls: 0,
   };
 
@@ -131,8 +136,92 @@ function createFixture({ secondAdmin = false } = {}) {
     },
     auditLog: {
       async create({ data }) {
-        state.auditLogs.push(data);
-        return data;
+        const row = {
+          id: `00000000-0000-4000-8000-${String(state.auditLogs.length + 900).padStart(12, "0")}`,
+          createdAt: new Date(),
+          oldValues: null,
+          newValues: null,
+          metadata: null,
+          ...data,
+        };
+        state.auditLogs.push(row);
+        return row;
+      },
+      async findMany(options = {}) {
+        const where = options.where ?? {};
+        let rows = state.auditLogs.filter((row) => {
+          if (where.actorId && row.actorId !== where.actorId) return false;
+          if (where.action && row.action !== where.action) return false;
+          if (where.createdAt?.gte && !(row.createdAt >= where.createdAt.gte)) return false;
+          if (where.createdAt?.lte && !(row.createdAt <= where.createdAt.lte)) return false;
+          return true;
+        });
+
+        rows = rows
+          .slice()
+          .sort((a, b) => b.createdAt - a.createdAt || String(b.id).localeCompare(String(a.id)));
+
+        return rows.map((row) => {
+          const actor = state.users.find((user) => user.id === row.actorId);
+          if (options.select) {
+            return {
+              action: options.select.action ? row.action : undefined,
+              actorId: options.select.actorId ? row.actorId : undefined,
+              actor:
+                options.select.actor && actor
+                  ? {
+                      id: actor.id,
+                      fullName: actor.fullName,
+                    }
+                  : options.select.actor
+                    ? null
+                    : undefined,
+            };
+          }
+
+          return {
+            ...row,
+            actor: actor
+              ? {
+                  id: actor.id,
+                  fullName: actor.fullName,
+                  role: actor.role,
+                }
+              : null,
+          };
+        });
+      },
+    },
+    exam: {
+      async findMany() {
+        state.examListCalls += 1;
+        return state.exams
+          .slice()
+          .sort((a, b) => b.startsAt - a.startsAt || a.id.localeCompare(b.id))
+          .map((exam) => {
+            const owner = state.users.find((user) => user.id === exam.ownerId);
+            return {
+              id: exam.id,
+              title: exam.title,
+              status: exam.status,
+              startsAt: exam.startsAt,
+              endsAt: exam.endsAt,
+              owner: owner
+                ? { id: owner.id, fullName: owner.fullName }
+                : { id: exam.ownerId, fullName: "Unknown" },
+              _count: {
+                questions: state.examQuestions.filter((row) => row.examId === exam.id).length,
+                enrollments: state.enrollments.filter(
+                  (row) => row.examId === exam.id && row.status === "ENROLLED",
+                ).length,
+              },
+              attempts: state.attempts
+                .filter((row) => row.examId === exam.id && row.mode === "OFFICIAL")
+                .map((row) => ({
+                  result: row.resultStatus ? { status: row.resultStatus } : null,
+                })),
+            };
+          });
       },
     },
     async $transaction(callback, options) {
@@ -368,5 +457,207 @@ test("an active admin can demote another admin only when another admin remains",
     assert.equal(result.response.status, 200);
     assert.equal(result.payload.data.role, "EXAMINER");
     assert.ok(fixture.state.transactionOptions.every((option) => option?.isolationLevel === "Serializable"));
+  });
+});
+
+test("admin exam listing returns all exams with mapped fields and derived resultsState", async () => {
+  const fixture = createFixture();
+  const examDraftId = "00000000-0000-4000-8000-000000000101";
+  const examCompletedId = "00000000-0000-4000-8000-000000000102";
+
+  fixture.state.exams.push(
+    {
+      id: examDraftId,
+      ownerId: examinerId,
+      title: "Draft Exam",
+      status: "DRAFT",
+      startsAt: new Date("2026-03-01T09:00:00.000Z"),
+      endsAt: new Date("2026-03-01T11:00:00.000Z"),
+    },
+    {
+      id: examCompletedId,
+      ownerId: examinerId,
+      title: "Completed Exam",
+      status: "COMPLETED",
+      startsAt: new Date("2026-04-01T09:00:00.000Z"),
+      endsAt: new Date("2026-04-01T11:00:00.000Z"),
+    },
+  );
+  fixture.state.examQuestions.push(
+    { examId: examCompletedId },
+    { examId: examCompletedId },
+    { examId: examDraftId },
+  );
+  fixture.state.enrollments.push(
+    { examId: examCompletedId, status: "ENROLLED" },
+    { examId: examCompletedId, status: "ENROLLED" },
+    { examId: examCompletedId, status: "WITHDRAWN" },
+    { examId: examDraftId, status: "ENROLLED" },
+  );
+  fixture.state.attempts.push(
+    { examId: examCompletedId, mode: "OFFICIAL", resultStatus: "READY_TO_PUBLISH" },
+    { examId: examCompletedId, mode: "OFFICIAL", resultStatus: "WITHHELD" },
+    { examId: examCompletedId, mode: "SANDBOX", resultStatus: "PENDING_REVIEW" },
+  );
+
+  await withServer(fixture, async (url) => {
+    const forbidden = await send(url, "/exams", { role: "EXAMINER" });
+    assert.equal(forbidden.response.status, 403);
+    assert.equal(fixture.state.examListCalls, 0);
+
+    const result = await send(url, "/exams");
+    assert.equal(result.response.status, 200);
+    assert.ok(Array.isArray(result.payload.exams));
+    assert.equal(result.payload.exams.length, 2);
+    assert.equal(fixture.state.examListCalls, 1);
+
+    const [completed, draft] = result.payload.exams;
+    assert.equal(completed.id, examCompletedId);
+    assert.equal(completed.title, "Completed Exam");
+    assert.equal(completed.status, "COMPLETED");
+    assert.deepEqual(completed.owner, { id: examinerId, name: "Examiner One" });
+    assert.equal(completed.startAt, new Date("2026-04-01T09:00:00.000Z").toISOString());
+    assert.equal(completed.endAt, new Date("2026-04-01T11:00:00.000Z").toISOString());
+    assert.equal(completed.candidateCount, 2);
+    assert.equal(completed.questionCount, 2);
+    assert.equal(completed.resultsState, "GRADED");
+    assert.equal("fullName" in completed.owner, false);
+
+    assert.equal(draft.id, examDraftId);
+    assert.equal(draft.resultsState, "NOT_READY");
+    assert.equal(draft.candidateCount, 1);
+    assert.equal(draft.questionCount, 1);
+  });
+});
+
+test("empty audit log returns the expected Admin UI shape", async () => {
+  const fixture = createFixture();
+  await withServer(fixture, async (url) => {
+    const result = await send(url, "/audit");
+    assert.equal(result.response.status, 200);
+    assert.deepEqual(result.payload, {
+      total: 0,
+      entries: [],
+      actors: [],
+      actions: [],
+    });
+  });
+});
+
+test("admin can retrieve audit records while examiners are rejected", async () => {
+  const fixture = createFixture();
+  const older = new Date("2026-01-10T10:00:00.000Z");
+  const newer = new Date("2026-01-11T10:00:00.000Z");
+
+  fixture.state.auditLogs.push(
+    {
+      id: "00000000-0000-4000-8000-000000000901",
+      actorId: examinerId,
+      action: "EXAM_CREATED",
+      entityType: "EXAM",
+      entityId: "00000000-0000-4000-8000-000000000101",
+      oldValues: null,
+      newValues: { title: "Databases Lab", status: "DRAFT" },
+      metadata: null,
+      createdAt: older,
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000902",
+      actorId: adminId,
+      action: "USER_CREATED",
+      entityType: "USER",
+      entityId: "00000000-0000-4000-8000-000000000099",
+      oldValues: null,
+      newValues: { fullName: "New Candidate", role: "CANDIDATE" },
+      metadata: null,
+      createdAt: newer,
+    },
+  );
+
+  await withServer(fixture, async (url) => {
+    const forbidden = await send(url, "/audit", { role: "EXAMINER" });
+    assert.equal(forbidden.response.status, 403);
+
+    const result = await send(url, "/audit");
+    assert.equal(result.response.status, 200);
+    assert.equal(result.payload.total, 2);
+    assert.equal(result.payload.entries.length, 2);
+    assert.equal(result.payload.entries[0].action, "USER_CREATED");
+    assert.equal(result.payload.entries[0].actorName, "Admin One");
+    assert.equal(result.payload.entries[0].actorRole, "ADMIN");
+    assert.equal(result.payload.entries[0].target, "New Candidate");
+    assert.equal(result.payload.entries[0].at, newer.toISOString());
+    assert.equal(result.payload.entries[1].action, "EXAM_CREATED");
+    assert.equal(result.payload.entries[1].target, "Databases Lab");
+
+    assert.deepEqual(result.payload.actors, [
+      { id: adminId, name: "Admin One" },
+      { id: examinerId, name: "Examiner One" },
+    ]);
+    assert.deepEqual(result.payload.actions, ["EXAM_CREATED", "USER_CREATED"]);
+  });
+});
+
+test("audit log filters by actor, action, and inclusive date range", async () => {
+  const fixture = createFixture();
+
+  fixture.state.auditLogs.push(
+    {
+      id: "00000000-0000-4000-8000-000000000911",
+      actorId: examinerId,
+      action: "EXAM_PUBLISHED",
+      entityType: "EXAM",
+      entityId: "exam-a",
+      oldValues: { status: "DRAFT" },
+      newValues: { status: "PUBLISHED", title: "Quiz A" },
+      metadata: null,
+      createdAt: new Date("2026-02-01T12:00:00.000Z"),
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000912",
+      actorId: examinerId,
+      action: "EXAM_CREATED",
+      entityType: "EXAM",
+      entityId: "exam-b",
+      oldValues: null,
+      newValues: { title: "Quiz B", status: "DRAFT" },
+      metadata: null,
+      createdAt: new Date("2026-02-02T12:00:00.000Z"),
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000913",
+      actorId: adminId,
+      action: "EXAM_PUBLISHED",
+      entityType: "EXAM",
+      entityId: "exam-c",
+      oldValues: { status: "DRAFT" },
+      newValues: { status: "PUBLISHED", title: "Quiz C" },
+      metadata: null,
+      createdAt: new Date("2026-02-03T12:00:00.000Z"),
+    },
+  );
+
+  await withServer(fixture, async (url) => {
+    const byActor = await send(url, `/audit?actorId=${examinerId}`);
+    assert.equal(byActor.response.status, 200);
+    assert.equal(byActor.payload.total, 2);
+    assert.ok(byActor.payload.entries.every((entry) => entry.actorId === examinerId));
+    assert.equal(byActor.payload.actors.length, 2);
+    assert.deepEqual(byActor.payload.actions, ["EXAM_CREATED", "EXAM_PUBLISHED"]);
+
+    const byAction = await send(url, "/audit?action=EXAM_PUBLISHED");
+    assert.equal(byAction.payload.total, 2);
+    assert.ok(byAction.payload.entries.every((entry) => entry.action === "EXAM_PUBLISHED"));
+
+    const byRange = await send(
+      url,
+      "/audit?from=2026-02-02T00:00:00.000Z&to=2026-02-02T23:59:59.999Z",
+    );
+    assert.equal(byRange.payload.total, 1);
+    assert.equal(byRange.payload.entries[0].target, "Quiz B");
+
+    const invalid = await send(url, "/audit?from=not-a-date");
+    assert.equal(invalid.response.status, 400);
+    assert.equal(invalid.payload.error.code, "VALIDATION_ERROR");
   });
 });

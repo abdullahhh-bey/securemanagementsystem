@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // GET RESULTS FOR AN EXAM
 const getExamResults = async (req, res) => {
@@ -102,20 +103,34 @@ const publishExamResults = async (req, res) => {
       });
     }
 
-    await prisma.$transaction(
-      readyResults.map((result) =>
-        prisma.result.update({
+    const publishedAt = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      for (const result of readyResults) {
+        await tx.result.update({
           where: {
             id: result.id,
           },
           data: {
             status: "PUBLISHED",
             publishedById: req.user.id,
-            publishedAt: new Date(),
+            publishedAt,
           },
-        })
-      )
-    );
+        });
+      }
+
+      await writeAuditLog(tx, {
+        actorId: req.user.id,
+        action: AuditAction.RESULTS_PUBLISHED,
+        entityType: AuditEntityType.EXAM,
+        entityId: examId,
+        oldValues: { status: "READY_TO_PUBLISH" },
+        newValues: {
+          status: "PUBLISHED",
+          publishedCount: readyResults.length,
+        },
+      });
+    });
 
     return res.status(200).json({
       success: true,
