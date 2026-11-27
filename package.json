@@ -11,5 +11,9 @@
     "build": "npm run build --workspace frontend && npm run check --workspace backend",
     "db:validate": "npm run db:validate --workspace backend",
     "db:generate": "npm run db:generate --workspace backend"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.10.1": true,
+    "prisma@7.10.1": true
   }
 }
