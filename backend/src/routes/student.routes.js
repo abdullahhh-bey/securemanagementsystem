@@ -19,6 +19,8 @@ import {
   getCandidateDisputes,
 } from "../controllers/candidate.controller.js";
 
+import { reportAttemptEvent } from "../controllers/candidate-event.controller.js";
+
 const router = express.Router();
 
 router.use(protect, authorize("CANDIDATE"));
@@ -35,6 +37,7 @@ router.put(
   saveCandidateAnswer
 );
 router.post("/attempts/:attemptId/submit", submitCandidateAttempt);
+router.post("/attempts/:attemptId/events", reportAttemptEvent);
 
 // Published results
 router.get("/results", getCandidateResults);

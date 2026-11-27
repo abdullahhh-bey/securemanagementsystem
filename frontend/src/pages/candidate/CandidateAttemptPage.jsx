@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAttemptEventReporting } from '@/hooks/useAttemptEventReporting'
 import { useCandidateAttemptWorkspace, useSaveCandidateAnswer, useSubmitCandidateAttempt } from '@/hooks/useStudentPortal'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useCountdown } from '@/hooks/useServerClock'
@@ -103,7 +104,9 @@ export default function CandidateAttemptPage() {
   const workspace = workspaceQuery.data
   const questions = workspace?.questions ?? []
   const activeQuestion = questions[activeIndex]
-  const save = useSaveCandidateAnswer(attemptId)
+  const reportingEnabled = Boolean(workspace && workspace.status === 'IN_PROGRESS' && !submitted)
+  const reportEvent = useAttemptEventReporting(attemptId, { enabled: reportingEnabled })
+  const save = useSaveCandidateAnswer(attemptId, { reportEvent })
   const submit = useSubmitCandidateAttempt({
     onSuccess: (data) => {
       setSubmitted(data)

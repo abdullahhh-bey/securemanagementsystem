@@ -38,6 +38,22 @@ export function useSaveGrade(examId, options) {
   )
 }
 
+export function useEvaluateExam(examId, options) {
+  return useAppMutation(() => gradingApi.evaluateExam(examId), {
+    invalidate: [
+      queryKeys.grading(examId),
+      queryKeys.resultsReview(examId),
+      queryKeys.results(examId),
+      queryKeys.examContent(examId),
+    ],
+    successMessage: (data) => {
+      const count = data?.evaluatedAttempts ?? 0
+      return `Evaluated ${count} attempt${count === 1 ? '' : 's'}`
+    },
+    ...options,
+  })
+}
+
 export function usePublishResults(examId, options) {
   return useAppMutation(() => gradingApi.publishResults(examId), {
     // examContent covers grading, results review, results and analytics together.

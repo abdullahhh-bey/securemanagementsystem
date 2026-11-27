@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import * as candidateApi from '@/api/candidate'
+import { AttemptEventType } from '@/lib/schema'
 import { queryKeys } from '@/lib/queryKeys'
 import { useAppMutation } from './useAppMutation'
 import { useToast } from './useToast'
@@ -33,16 +34,29 @@ export function useStartCandidateAttempt(options) {
   })
 }
 
-export function useSaveCandidateAnswer(attemptId) {
+export function useSaveCandidateAnswer(attemptId, { reportEvent } = {}) {
   const toast = useToast()
   const pendingByQuestion = useRef(new Map())
+  const reportEventRef = useRef(reportEvent)
+  reportEventRef.current = reportEvent
   const mutation = useMutation({
     mutationFn: ({ attemptQuestionId, answer }) =>
       candidateApi.saveCandidateAnswer(attemptId, attemptQuestionId, answer),
-    onError: (error) => toast.error(error.message || 'Your answer could not be saved.'),
+    onSuccess: (_data, variables) => {
+      reportEventRef.current?.(AttemptEventType.ANSWER_SAVE_SUCCEEDED, {
+        attemptQuestionId: variables.attemptQuestionId,
+      })
+    },
+    onError: (error, variables) => {
+      toast.error(error.message || 'Your answer could not be saved.')
+      reportEventRef.current?.(AttemptEventType.ANSWER_SAVE_FAILED, {
+        attemptQuestionId: variables?.attemptQuestionId,
+        message: error?.message,
+      })
+    },
   })
   const saveAnswer = mutation.mutateAsync
-  const queueSave = useCallback(
+  const queuedSave = useCallback(
     (variables) => {
       const { attemptQuestionId } = variables
       const previous = pendingByQuestion.current.get(attemptQuestionId)
@@ -59,7 +73,7 @@ export function useSaveCandidateAnswer(attemptId) {
     },
     [saveAnswer],
   )
-  return { ...mutation, saveAnswer: queueSave }
+  return { ...mutation, saveAnswer: queuedSave }
 }
 
 export function useSubmitCandidateAttempt(options) {

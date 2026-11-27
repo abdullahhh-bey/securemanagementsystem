@@ -150,7 +150,11 @@ export function CandidatesTab({ exam }) {
         confirmLabel="Remove candidate"
         tone="danger"
         isPending={remove.isPending}
-        onConfirm={() => remove.mutate(removeTarget.id, { onSettled: () => setRemoveTarget(null) })}
+        onConfirm={() =>
+          remove.mutate(removeTarget.enrollmentId ?? removeTarget.id, {
+            onSettled: () => setRemoveTarget(null),
+          })
+        }
       />
 
       <ImportDialog

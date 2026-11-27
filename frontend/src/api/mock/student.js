@@ -280,6 +280,47 @@ export async function submitCandidateAttempt(attemptId) {
   }
 }
 
+const MOCK_ATTEMPT_EVENT_TYPES = new Set([
+  'NETWORK_DISCONNECTED',
+  'NETWORK_RESTORED',
+  'ANSWER_SAVE_FAILED',
+  'ANSWER_SAVE_SUCCEEDED',
+  'TAB_HIDDEN',
+  'WINDOW_BLURRED',
+  'ATTEMPT_RESUMED',
+])
+
+// POST /api/candidate/attempts/:attemptId/events  { type, metadata? }
+export async function reportAttemptEvent(attemptId, { type, metadata } = {}) {
+  const me = requireRole('CANDIDATE')
+  await delay(40, 120)
+  if (typeof type !== 'string' || !MOCK_ATTEMPT_EVENT_TYPES.has(type)) {
+    fail(400, 'INVALID_EVENT_TYPE', 'Invalid attempt event type.')
+  }
+  if (metadata != null && (typeof metadata !== 'object' || Array.isArray(metadata))) {
+    fail(400, 'INVALID_METADATA', 'Event metadata must be a JSON object when provided.')
+  }
+  const attempt = findAttempt(attemptId, me.id)
+  if (attempt.status !== 'IN_PROGRESS') {
+    fail(400, 'ATTEMPT_NOT_IN_PROGRESS', 'This attempt is no longer in progress.')
+  }
+  const created = {
+    id: nextId('ev'),
+    type,
+    occurredAt: new Date(serverNow()).toISOString(),
+    metadata: metadata ?? null,
+  }
+  attempt.incidents ??= []
+  attempt.incidents.push({
+    id: created.id,
+    type,
+    at: created.occurredAt,
+    detail: typeof metadata?.message === 'string' ? metadata.message : null,
+  })
+  attempt.lastActivityAt = created.occurredAt
+  return clone(created)
+}
+
 export async function listCandidateResults() {
   const me = requireRole('CANDIDATE')
   await delay()

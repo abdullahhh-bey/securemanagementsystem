@@ -1,6 +1,6 @@
 import { examStatus, requireRole } from './db'
 import { record } from './audit'
-import { assignedFor, publishedAt, questionById, realAttempts, resultsState, snapshot } from './examData'
+import { assignedFor, currentScore, publishedAt, questionById, realAttempts, resultsState } from './examData'
 import { ownedExam } from './exams'
 import { clone, delay, fail, serverNow } from './helpers'
 import { resultRows } from './results'
@@ -108,4 +108,26 @@ export async function publishResults(examId) {
   publishedAt.set(examId, when)
   record(me, 'RESULTS_PUBLISHED', exam.title, `${attempts.length} candidates, results released`)
   return { state: 'PUBLISHED', publishedAt: when, candidates: attempts.length }
+}
+
+// PATCH /api/examiner/exams/:examId/evaluate — choice questions only; written grades are preserved.
+export async function evaluateExam(examId) {
+  const me = requireRole('EXAMINER')
+  const exam = ownedExam(examId)
+  await delay(300, 600)
+
+  const attempts = submitted(examId)
+  if (attempts.length === 0) {
+    fail(400, 'NO_ATTEMPTS', 'No submitted attempts are available for evaluation.')
+  }
+
+  const results = attempts.map((attempt) => ({
+    attemptId: attempt.id,
+    obtainedMarks: currentScore(attempt).total,
+    totalMarks: exam.totalMarks,
+    resultId: `result_${attempt.id}`,
+  }))
+
+  record(me, 'EXAM_EVALUATED', exam.title, `${results.length} attempts evaluated`)
+  return { evaluatedAttempts: results.length, results: clone(results) }
 }
