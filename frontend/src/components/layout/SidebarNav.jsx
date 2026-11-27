@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Globe } from 'lucide-react'
-import { Brand } from './Brand'
+import { BrandLogo } from './BrandLogo'
 import { localTimeZoneLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -9,9 +9,9 @@ export function SidebarNav({ nav, theme, areaLabel, onNavigate }) {
   const tz = localTimeZoneLabel()
   return (
     <div className={cn('flex h-full flex-col', theme.sidebarPadding)}>
-      <div className="px-2">
-        <Brand onDark={theme.onDark} />
-        <p className={cn('mt-3 text-xs font-semibold uppercase tracking-widest', theme.areaLabel)}>{areaLabel}</p>
+      <div className={cn('px-1', onNavigate && 'pr-10')}>
+        <BrandLogo size="sm" variant={theme.onDark ? 'onDark' : 'default'} />
+        <p className={cn('mt-3 px-1 text-xs font-semibold uppercase tracking-widest', theme.areaLabel)}>{areaLabel}</p>
       </div>
 
       <nav aria-label={`${areaLabel} navigation`} className={cn('mt-4 flex flex-col', theme.navGap)}>

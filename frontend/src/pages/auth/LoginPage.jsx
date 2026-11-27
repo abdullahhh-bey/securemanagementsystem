@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -6,7 +6,8 @@ import { CircleAlert, Clock3, LogIn, ScrollText, ShieldCheck, UserRound } from '
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
-import { Brand } from '@/components/layout/Brand'
+import { AppFooter } from '@/components/layout/AppFooter'
+import { BrandLogo } from '@/components/layout/BrandLogo'
 import { SkipLink } from '@/components/layout/SkipLink'
 import { FormField } from '@/components/FormField'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,34 +30,33 @@ const HIGHLIGHTS = [
 
 function BrandPanel() {
   return (
-    <aside aria-label="About Quillmark" className="ruled-paper on-ink relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex xl:p-16">
-      <Brand onDark size="lg" />
-      <div className="max-w-lg pl-6">
+    <aside aria-label="About the system" className="geo-lines on-ink relative hidden flex-col justify-between overflow-hidden p-12 text-on-dark lg:flex xl:p-16">
+      <BrandLogo size="lg" variant="onDark" />
+      <div className="max-w-lg">
         <p className="text-balance font-heading text-4xl font-extrabold leading-tight tracking-tight xl:text-[2.6rem]">
-          Fair exams, calmly run.
+          Secure Examination Management System
         </p>
-        <p className="mt-4 max-w-md text-lg text-white/80">
-          Quillmark helps institutions schedule, publish and supervise examinations with confidence.
+        <p className="mt-4 max-w-md text-lg text-on-dark/85">
+          Schedule, publish and supervise examinations with confidence.
         </p>
         <ul className="mt-10 space-y-6">
           {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
             <li key={title} className="flex gap-4">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/5" aria-hidden="true">
-                <Icon className="size-5 text-[#7dd3c8]" />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-on-dark/25 bg-on-dark/5" aria-hidden="true">
+                <Icon className="size-5" />
               </span>
               <div>
                 <p className="font-semibold">{title}</p>
-                <p className="text-sm leading-relaxed text-white/75">{text}</p>
+                <p className="text-sm leading-relaxed text-on-dark/80">{text}</p>
               </div>
             </li>
           ))}
         </ul>
       </div>
-      <p className="pl-6 text-sm text-white/65">Secure Examination Management System</p>
+      <p className="text-sm text-on-dark/80">Technoverse 5.0 {'\u00b7'} Web-e-Thon {'\u00b7'} COMSATS University Lahore</p>
     </aside>
   )
 }
-
 export default function LoginPage() {
   usePageTitle('Sign in')
   const { login } = useAuth()
@@ -103,8 +103,8 @@ export default function LoginPage() {
       <BrandPanel />
 
       <div className="flex flex-col">
-        <div className="ruled-paper on-ink px-6 py-5 lg:hidden">
-          <Brand onDark />
+        <div className="geo-lines on-ink px-6 py-5 lg:hidden">
+          <BrandLogo size="md" variant="onDark" />
         </div>
 
         <main id="main-content" className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">
@@ -164,6 +164,7 @@ export default function LoginPage() {
             </section>
           </div>
         </main>
+        <AppFooter />
       </div>
     </div>
   )

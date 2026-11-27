@@ -1,32 +1,8 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 
-/* ---------------------------------------------------------------------------
-   Design tokens - "calm academic"
-   Warm paper background, ink navy text, one teal accent. Thin borders, no
-   heavy shadows. All text/background pairs below meet WCAG AA (>= 4.5:1).
-   --------------------------------------------------------------------------- */
+/* Colours live in styles/tokens.css only. This file: fonts, radii, base styles. */
 :root {
-  --background: #f7f5f0;
-  --surface: #ffffff;
-  --sunken: #efece4; /* hover / active fill, slightly darker than background */
-  --border: #e5e1d8; /* decorative dividers and card outlines */
-  --input: #8a91a0; /* form-control outline, >= 3:1 against surface */
-  --ink: #14213d;
-  --muted: #5b6475;
-
-  --primary: #0f766e;
-  --primary-hover: #0b5f58;
-  --primary-soft: #e3f1ef;
-  --success: #15803d;
-  --success-soft: #eff8f1;
-  --warning: #b45309;
-  --warning-soft: #fbf1e2;
-  --danger: #b91c1c;
-  --danger-soft: #fbeaea;
-  --info: #1d4ed8;
-  --info-soft: #e8eefb;
-
-  --ring: #0f766e;
   --radius: 10px;
 }
 
@@ -35,31 +11,10 @@
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-sunken: var(--sunken);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-primary-soft: var(--primary-soft);
-  --color-success: var(--success);
-  --color-success-soft: var(--success-soft);
-  --color-warning: var(--warning);
-  --color-warning-soft: var(--warning-soft);
-  --color-danger: var(--danger);
-  --color-danger-soft: var(--danger-soft);
-  --color-info: var(--info);
-  --color-info-soft: var(--info-soft);
-  --color-ring: var(--ring);
-
   --radius-md: 8px;
   --radius-lg: var(--radius);
   --radius-xl: 12px;
 }
-
 @layer base {
   html {
     color-scheme: light;
@@ -93,7 +48,7 @@
     outline: none;
   }
   ::selection {
-    background: #bfe3de;
+    background: var(--selection);
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -109,17 +64,16 @@
 @layer components {
   /* Dark surfaces need a lighter ring to stay visible. */
   .on-ink {
-    --ring: #7dd3c8;
+    --ring: var(--ring-on-dark);
   }
 
-  /* Ruled exam-paper motif used on the login brand panel. */
-  .ruled-paper {
-    background-color: var(--ink);
+  /* Navy panel with a quiet geometric lattice (pure CSS, no images). */
+  .geo-lines {
+    background-color: var(--navy);
     background-image:
-      linear-gradient(to right, transparent 63px, rgb(125 211 200 / 0.35) 63px, rgb(125 211 200 / 0.35) 64px, transparent 64px),
-      repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgb(255 255 255 / 0.07) 31px, rgb(255 255 255 / 0.07) 32px);
+      repeating-linear-gradient(45deg, transparent 0, transparent 47px, color-mix(in srgb, var(--on-dark) 7%, transparent) 47px, color-mix(in srgb, var(--on-dark) 7%, transparent) 48px),
+      repeating-linear-gradient(-45deg, transparent 0, transparent 47px, color-mix(in srgb, var(--on-dark) 7%, transparent) 47px, color-mix(in srgb, var(--on-dark) 7%, transparent) 48px);
   }
-
   .num {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;

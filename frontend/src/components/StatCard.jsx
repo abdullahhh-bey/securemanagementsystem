@@ -9,7 +9,7 @@ const iconTone = cva('flex size-10 items-center justify-center rounded-lg [&_svg
   variants: {
     tone: {
       neutral: 'bg-sunken text-ink',
-      brand: 'bg-primary-soft text-primary-hover',
+      brand: 'bg-sky text-primary-hover',
       success: 'bg-success-soft text-success',
       warning: 'bg-warning-soft text-warning',
       danger: 'bg-danger-soft text-danger',
@@ -49,7 +49,7 @@ export function StatCard({ label, value, icon: Icon, tone, hint, to, loading = f
   const classes = cn('block p-5', className)
   if (to) {
     return (
-      <Card as={Link} to={to} className={cn(classes, 'transition-colors hover:border-primary/50 hover:bg-primary-soft/40')}>
+      <Card as={Link} to={to} className={cn(classes, 'transition-colors hover:border-primary/50 hover:bg-sky/40')}>
         {body}
       </Card>
     )

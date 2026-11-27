@@ -20,6 +20,10 @@ import NotFoundPage from "@/pages/errors/NotFoundPage";
 const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
 const AdminOverviewPage = lazy(() => import("@/pages/admin/AdminOverviewPage"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
+const AdminAuditPage = lazy(() => import("@/pages/admin/AdminAuditPage"));
+const AdminExamsPage = lazy(() => import("@/pages/admin/AdminExamsPage"));
+const CandidateResultPage = lazy(() => import("@/pages/candidate/CandidateResultPage"));
+const ExamWorkspacePage = lazy(() => import("@/pages/examiner/ExamWorkspacePage"));
 const CandidateExamPage = lazy(
   () => import("@/pages/candidate/CandidateExamPage"),
 );
@@ -77,6 +81,8 @@ export default function App() {
                       <Route element={<AdminLayout />}>
                         <Route index element={<AdminOverviewPage />} />
                         <Route path="users" element={<AdminUsersPage />} />
+                        <Route path="exams" element={<AdminExamsPage />} />
+                        <Route path="audit" element={<AdminAuditPage />} />
                         <Route
                           path="*"
                           element={<Navigate to="/404" replace />}
@@ -95,6 +101,7 @@ export default function App() {
                         <Route path="exams" element={<ExamsListPage />} />
                         <Route path="exams/new" element={<ExamFormPage />} />
                         <Route path="exams/:id" element={<ExamDetailPage />} />
+                        <Route path="exams/:id/sandbox" element={<ExamWorkspacePage />} />
                         <Route
                           path="exams/:id/edit"
                           element={<ExamFormPage />}
@@ -121,6 +128,10 @@ export default function App() {
                         <Route
                           path="exams/:id"
                           element={<CandidateExamPage />}
+                        />
+                        <Route
+                          path="exams/:id/result"
+                          element={<CandidateResultPage />}
                         />
                         <Route
                           path="*"

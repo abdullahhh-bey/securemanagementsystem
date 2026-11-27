@@ -30,8 +30,8 @@ export function Stepper({ steps, current, complete = false, label = 'Progress', 
                 aria-hidden="true"
                 className={cn(
                   'relative z-10 flex size-8 items-center justify-center rounded-full border-2 text-sm font-semibold',
-                  done && 'border-primary bg-primary text-white',
-                  active && 'border-primary bg-surface text-primary-hover ring-4 ring-primary-soft',
+                  done && 'border-primary bg-primary text-on-primary',
+                  active && 'border-primary bg-surface text-primary-hover ring-4 ring-sky',
                   !done && !active && 'border-input bg-surface text-muted',
                 )}
               >

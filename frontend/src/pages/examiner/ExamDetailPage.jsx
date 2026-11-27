@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Activity, BarChart3, FileText, HelpCircle, Pencil, Send, Trash2, Users } from 'lucide-react'
+import { Activity, BarChart3, ClipboardCheck, Eye, FileText, Gavel, HelpCircle, Pencil, Send, Trash2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,34 +12,34 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { ExamLifecycle } from '@/components/exam/ExamLifecycle'
 import { useDeleteExam, useExam } from '@/hooks/useExams'
 import { formatWindow } from '@/lib/format'
-import { ComingNextTab } from './tabs/ComingNextTab'
 import { CandidatesTab } from './tabs/CandidatesTab'
 import { DetailsTab } from './tabs/DetailsTab'
+
+// Heavy tabs (charts, import, grading) load only when opened.
+const QuestionsTab = lazy(() => import('./tabs/QuestionsTab').then((m) => ({ default: m.QuestionsTab })))
+const MonitorTab = lazy(() => import('./tabs/MonitorTab').then((m) => ({ default: m.MonitorTab })))
+const GradingTab = lazy(() => import('./tabs/GradingTab').then((m) => ({ default: m.GradingTab })))
+const ResultsTab = lazy(() => import('./tabs/ResultsTab').then((m) => ({ default: m.ResultsTab })))
+const DisputesTab = lazy(() => import('./tabs/DisputesTab').then((m) => ({ default: m.DisputesTab })))
 
 const TABS = [
   { value: 'details', label: 'Details', icon: FileText },
   { value: 'candidates', label: 'Candidates', icon: Users },
   { value: 'questions', label: 'Questions', icon: HelpCircle },
   { value: 'monitor', label: 'Monitor', icon: Activity },
+  { value: 'grading', label: 'Grading', icon: ClipboardCheck },
   { value: 'results', label: 'Results', icon: BarChart3 },
+  { value: 'disputes', label: 'Disputes', icon: Gavel },
 ]
 
-const COMING_NEXT = {
-  questions: {
-    icon: HelpCircle,
-    title: 'The question builder is coming next',
-    description: 'Soon you will write multiple-choice questions, attach marks and reorder them right here.',
-  },
-  monitor: {
-    icon: Activity,
-    title: 'Live monitoring is coming next',
-    description: 'When an exam is running you will see who has joined, progress and connection status in real time.',
-  },
-  results: {
-    icon: BarChart3,
-    title: 'Results are coming next',
-    description: 'Scores, grade distribution and per-question analysis will appear here once an exam has finished.',
-  },
+function TabFallback() {
+  return (
+    <div className="space-y-4" role="status">
+      <span className="sr-only">Loading</span>
+      <Skeleton className="h-10 w-1/3" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  )
 }
 
 function DetailSkeleton() {
@@ -98,6 +98,11 @@ export default function ExamDetailPage() {
         }
         actions={
           <>
+            <Button asChild variant="secondary">
+              <Link to={`/examiner/exams/${exam.id}/sandbox`}>
+                <Eye /> Preview as candidate
+              </Link>
+            </Button>
             {isDraft ? (
               <>
                 <Button asChild variant="secondary">
@@ -145,11 +150,13 @@ export default function ExamDetailPage() {
         <TabsContent value="candidates">
           <CandidatesTab exam={exam} />
         </TabsContent>
-        {Object.entries(COMING_NEXT).map(([value, content]) => (
-          <TabsContent key={value} value={value}>
-            <ComingNextTab {...content} />
-          </TabsContent>
-        ))}
+        <Suspense fallback={<TabFallback />}>
+          <TabsContent value="questions">{tab === 'questions' && <QuestionsTab exam={exam} />}</TabsContent>
+          <TabsContent value="monitor">{tab === 'monitor' && <MonitorTab exam={exam} />}</TabsContent>
+          <TabsContent value="grading">{tab === 'grading' && <GradingTab exam={exam} />}</TabsContent>
+          <TabsContent value="results">{tab === 'results' && <ResultsTab exam={exam} />}</TabsContent>
+          <TabsContent value="disputes">{tab === 'disputes' && <DisputesTab exam={exam} />}</TabsContent>
+        </Suspense>
       </Tabs>
 
       <ConfirmDialog

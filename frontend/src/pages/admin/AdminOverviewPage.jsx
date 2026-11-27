@@ -1,21 +1,26 @@
 import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
-import { GraduationCap, PencilLine, ShieldCheck, UserCheck, UserX, Users, UserPlus } from 'lucide-react'
+import { ArrowRight, GraduationCap, PencilLine, ScrollText, ShieldCheck, UserCheck, UserX, Users, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { RoleChip } from '@/components/StatusBadge'
 import { StatCard } from '@/components/StatCard'
+import { useAuditLog } from '@/hooks/useAdmin'
 import { useUsers } from '@/hooks/useUsers'
-import { formatDate } from '@/lib/format'
+import { AUDIT_ACTION_LABELS } from '@/lib/constants'
+import { formatDate, formatDateTime } from '@/lib/format'
 
 // Recharts is the heaviest dependency; load it only when this page is opened.
 const UsersByRoleChart = lazy(() => import('@/components/charts/UsersByRoleChart'))
 
 export default function AdminOverviewPage() {
   const { data: users, isPending, error, refetch, isRefetching } = useUsers()
+  const { data: audit, isPending: auditPending } = useAuditLog({})
+  const recentActivity = audit?.entries?.slice(0, 10) ?? []
 
   const count = (predicate) => (users ? users.filter(predicate).length : 0)
   const recent = users ? [...users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5) : []
@@ -95,6 +100,53 @@ export default function AdminOverviewPage() {
               </ul>
             </Card>
           </div>
+
+          <Card as="section" aria-labelledby="activity-heading">
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle id="activity-heading">Recent activity</CardTitle>
+                <CardDescription>Latest actions recorded in the audit log.</CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/admin/audit">
+                  View all <ArrowRight />
+                </Link>
+              </Button>
+            </CardHeader>
+            <ul className="divide-y divide-border">
+              {auditPending
+                ? Array.from({ length: 6 }, (_, i) => (
+                    <li key={i} className="flex items-center justify-between gap-3 px-6 py-3.5">
+                      <Skeleton className="h-9 w-56" />
+                      <Skeleton className="h-4 w-24" />
+                    </li>
+                  ))
+                : recentActivity.length === 0 ? (
+                    <li className="px-6 py-8">
+                      <EmptyState
+                        compact
+                        icon={ScrollText}
+                        title="No activity yet"
+                        description="Important actions will appear here as they happen."
+                      />
+                    </li>
+                  ) : (
+                    recentActivity.map((entry) => (
+                      <li key={entry.id} className="flex flex-col gap-1 px-6 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{AUDIT_ACTION_LABELS[entry.action] ?? entry.action}</p>
+                          <p className="text-xs text-muted">
+                            <span>{entry.actorName}</span>
+                            <span aria-hidden="true"> · </span>
+                            <span>{entry.target}</span>
+                          </p>
+                        </div>
+                        <span className="num shrink-0 text-xs text-muted">{formatDateTime(entry.at)}</span>
+                      </li>
+                    ))
+                  )}
+            </ul>
+          </Card>
         </div>
       )}
     </>

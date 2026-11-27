@@ -1,4 +1,5 @@
 import { accessStatus, enrollments, examStatus, exams, requireRole } from './db'
+import { publishedAt } from './examData'
 import { clone, delay, fail } from './helpers'
 import { formatDateTime } from '@/lib/format'
 
@@ -14,6 +15,7 @@ function dto(e) {
     settings: e.settings,
     status: examStatus(e),
     accessStatus: accessStatus(e),
+    resultsPublished: publishedAt.has(e.id),
   }
 }
 

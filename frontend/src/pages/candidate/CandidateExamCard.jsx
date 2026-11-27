@@ -1,4 +1,5 @@
-import { ArrowRight, CalendarClock, CircleAlert, Hourglass, Trophy } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, CalendarClock, CircleAlert, FileCheck2, Hourglass, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { formatDuration, formatWindow } from '@/lib/format'
@@ -56,7 +57,7 @@ export function CandidateExamCard({ exam, onEnter, isEntering, entryError, onEla
         </p>
       )}
 
-      <div className="mt-6 flex">
+      <div className="mt-6 flex flex-wrap gap-3">
         <Button
           size="lg"
           onClick={() => onEnter(exam)}
@@ -67,6 +68,13 @@ export function CandidateExamCard({ exam, onEnter, isEntering, entryError, onEla
           {isEntering ? 'Checking access\u2026' : 'Enter exam'}
           {!isEntering && <ArrowRight />}
         </Button>
+        {exam.accessStatus === 'CLOSED' && exam.resultsPublished && (
+          <Button asChild size="lg" variant="secondary">
+            <Link to={`/candidate/exams/${exam.id}/result`} aria-label={`View result: ${exam.title}`}>
+              <FileCheck2 /> View result
+            </Link>
+          </Button>
+        )}
       </div>
     </Card>
   )

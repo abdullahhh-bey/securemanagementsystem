@@ -12,7 +12,7 @@ function ToastItem({ toast, onDismiss }) {
   const tone = TONES[toast.tone]
   const Icon = tone.icon
   return (
-    <div className="pointer-events-auto relative flex w-full gap-3 overflow-hidden rounded-lg border border-border bg-surface py-3 pl-5 pr-3 shadow-[0_4px_16px_rgb(20_33_61/0.12)] animate-[toast-in_180ms_ease-out]">
+    <div className="pointer-events-auto relative flex w-full gap-3 overflow-hidden rounded-lg border border-border bg-surface py-3 pl-5 pr-3 shadow-toast animate-[toast-in_180ms_ease-out]">
       <span className={cn('absolute inset-y-0 left-0 w-1', tone.bar)} aria-hidden="true" />
       <Icon className={cn('mt-0.5 size-5 shrink-0', tone.accent)} aria-hidden="true" />
       <div className="min-w-0 flex-1">

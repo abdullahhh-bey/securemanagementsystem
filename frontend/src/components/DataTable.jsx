@@ -153,7 +153,7 @@ export function DataTable({
         <table className="w-full min-w-[640px] border-collapse text-left text-sm">
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
-            <tr className="border-b border-border bg-background/60">
+            <tr className="border-b border-border bg-sky">
               {columns.map((column) => {
                 const sortable = Boolean(column.sortValue)
                 const direction = sort?.key === column.key ? sort.dir : null
@@ -201,7 +201,7 @@ export function DataTable({
               ))}
             {!isLoading &&
               visible.map((row) => (
-                <tr key={rowKey(row)} className="border-b border-border transition-colors last:border-0 hover:bg-background/60">
+                <tr key={rowKey(row)} className="border-b border-border transition-colors last:border-0 hover:bg-sky/60">
                   {columns.map((column) => (
                     <td key={column.key} className={cn('px-4 py-3 align-middle', column.className)}>
                       {column.cell ? column.cell(row) : row[column.key]}

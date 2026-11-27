@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { Lock, UserMinus, UserPlus, Users } from 'lucide-react'
+import { FileUp, Lock, UserMinus, UserPlus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
+import { ImportDialog } from '@/components/import/ImportDialog'
 import { useAvailableCandidates, useEnrollCandidates, useExamCandidates, useRemoveCandidate } from '@/hooks/useExams'
+import { useToast } from '@/hooks/useToast'
+import { parseCandidateEnrollRecord } from '@/lib/importSchemas'
 import { formatDateTime } from '@/lib/format'
 import { pluralize } from '@/lib/utils'
 import { CandidatePicker } from './CandidatePicker'
@@ -15,11 +18,13 @@ export function CandidatesTab({ exam }) {
   // The server decides what can change; this only mirrors the documented rules for a friendlier UI.
   const canEnroll = exam.status === 'DRAFT' || exam.status === 'PUBLISHED'
   const canRemove = canEnroll
+  const toast = useToast()
 
   const enrolled = useExamCandidates(exam.id)
   const available = useAvailableCandidates(exam.id, { enabled: canEnroll })
   const [selected, setSelected] = useState([])
   const [removeTarget, setRemoveTarget] = useState(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   const enroll = useEnrollCandidates(exam.id, { onSuccess: () => setSelected([]) })
   const remove = useRemoveCandidate(exam.id)
@@ -84,14 +89,19 @@ export function CandidatesTab({ exam }) {
                   <p role="status" aria-live="polite" className="text-sm text-muted">
                     <span className="num font-semibold text-ink">{effectiveSelected.length}</span> selected
                   </p>
-                  <Button
-                    onClick={() => enroll.mutate(effectiveSelected)}
-                    loading={enroll.isPending}
-                    disabledReason={effectiveSelected.length === 0 ? 'Select at least one candidate first.' : undefined}
-                  >
-                    {!enroll.isPending && <UserPlus />}
-                    Enroll {effectiveSelected.length > 0 ? pluralize(effectiveSelected.length, 'candidate') : 'selected'}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                      <FileUp /> Import CSV
+                    </Button>
+                    <Button
+                      onClick={() => enroll.mutate(effectiveSelected)}
+                      loading={enroll.isPending}
+                      disabledReason={effectiveSelected.length === 0 ? 'Select at least one candidate first.' : undefined}
+                    >
+                      {!enroll.isPending && <UserPlus />}
+                      Enroll {effectiveSelected.length > 0 ? pluralize(effectiveSelected.length, 'candidate') : 'selected'}
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
@@ -141,6 +151,38 @@ export function CandidatesTab({ exam }) {
         tone="danger"
         isPending={remove.isPending}
         onConfirm={() => remove.mutate(removeTarget.id, { onSettled: () => setRemoveTarget(null) })}
+      />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import candidates"
+        description="Upload a CSV or JSON file of emails. Only people who already have candidate accounts and are not already enrolled can be added."
+        sampleHint="Required column: email"
+        templateCsv={'email\r\ncandidate1@demo.com\r\ncandidate2@demo.com\r\n'}
+        parseRecord={parseCandidateEnrollRecord}
+        columns={[{ key: 'email', header: 'Email', cell: (row) => row.value.email }]}
+        onImport={async (rows) => {
+          const byEmail = new Map((available.data ?? []).map((c) => [c.email.toLowerCase(), c.id]))
+          const ids = []
+          const missing = []
+          for (const row of rows) {
+            const id = byEmail.get(row.email.toLowerCase())
+            if (id) ids.push(id)
+            else missing.push(row.email)
+          }
+          if (ids.length === 0) {
+            throw new Error(
+              missing.length
+                ? 'None of those emails match an enrollable candidate account.'
+                : 'No valid candidate emails to enroll.',
+            )
+          }
+          await enroll.mutateAsync(ids)
+          if (missing.length) {
+            toast.error(`${missing.length} email${missing.length === 1 ? '' : 's'} could not be matched and were skipped.`)
+          }
+        }}
       />
     </div>
   )

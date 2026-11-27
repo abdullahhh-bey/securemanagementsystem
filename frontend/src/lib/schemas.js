@@ -68,3 +68,46 @@ export const examSchema = z
       })
     }
   })
+
+const questionOptionSchema = z.object({
+  text: z.string().trim().min(1, 'Option text is required.'),
+  isCorrect: z.boolean(),
+})
+
+const positiveMarks = z.coerce
+  .number({ error: 'Marks must be a number.' })
+  .refine((n) => n > 0, 'Marks must be more than zero.')
+
+export const questionSchema = z
+  .object({
+    type: z.enum(['MCQ_SINGLE', 'MCQ_MULTI', 'WRITTEN'], { error: 'Choose a question type.' }),
+    text: requiredText('Question', 4000),
+    topic: requiredText('Topic', 80),
+    difficulty: z.enum(['easy', 'medium', 'hard'], { error: 'Choose a difficulty.' }),
+    defaultMarks: positiveMarks,
+    options: z.array(questionOptionSchema),
+    markingRule: z.enum(['ALL_OR_NOTHING', 'PARTIAL']).nullable(),
+    penalty: z.coerce.number().min(0).max(1).nullable(),
+    modelAnswer: z.string().trim().max(8000),
+  })
+  .superRefine((value, ctx) => {
+    if (value.type === 'WRITTEN') return
+    const filled = value.options.filter((o) => o.text.trim())
+    if (filled.length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['options'], message: 'Add at least two answer options.' })
+      return
+    }
+    const correct = filled.filter((o) => o.isCorrect).length
+    if (correct === 0) {
+      ctx.addIssue({ code: 'custom', path: ['options'], message: 'Mark at least one option as correct.' })
+      return
+    }
+    if (value.type === 'MCQ_SINGLE' && correct > 1) {
+      ctx.addIssue({ code: 'custom', path: ['options'], message: 'A single-answer question can have only one correct option.' })
+    }
+    if (value.type === 'MCQ_MULTI' && value.markingRule === 'PARTIAL') {
+      if (value.penalty === null || Number.isNaN(value.penalty) || value.penalty < 0 || value.penalty > 1) {
+        ctx.addIssue({ code: 'custom', path: ['penalty'], message: 'The penalty is a fraction between 0 and 1.' })
+      }
+    }
+  })

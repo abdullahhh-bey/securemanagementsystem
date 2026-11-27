@@ -2,12 +2,18 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { BrandLogo } from './BrandLogo'
 import { RoleChip } from '@/components/StatusBadge'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/useToast'
 import { initials, cn } from '@/lib/utils'
 
-export function TopBar({ theme, onOpenMenu, menuOpen, menuButtonRef }) {
+/**
+ * `leading` is the slot after the menu button. By default it shows the small
+ * logo on screens where the sidebar is hidden; the exam workspace can pass its
+ * own minimal content here later.
+ */
+export function TopBar({ theme, onOpenMenu, menuOpen, menuButtonRef, leading }) {
   const { user, logout } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -39,10 +45,12 @@ export function TopBar({ theme, onOpenMenu, menuOpen, menuButtonRef }) {
         <Menu className="size-5" />
       </Button>
 
+      {leading ?? <BrandLogo size="sm" className="min-w-0 lg:hidden" />}
+
       <div className="ml-auto flex items-center gap-3">
         <div className="flex items-center gap-3">
           <span
-            className="hidden size-9 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary-hover sm:flex"
+            className="hidden size-9 items-center justify-center rounded-full bg-sky text-sm font-bold text-primary-hover sm:flex"
             aria-hidden="true"
           >
             {initials(user?.name)}

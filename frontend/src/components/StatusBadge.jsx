@@ -1,5 +1,8 @@
 import { cva } from 'class-variance-authority'
-import { ACCESS_STATUS_META, ACCOUNT_STATUS_META, CHECK_STATUS_META, EXAM_STATUS_META, ROLE_META } from '@/lib/constants'
+import {
+  ACCESS_STATUS_META, ACCOUNT_STATUS_META, CHECK_STATUS_META, CONNECTION_META, DIFFICULTY_META, DISPUTE_OUTCOME_META,
+  DISPUTE_STATUS_META, EXAM_STATUS_META, RESULTS_STATE_META, ROLE_META,
+} from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
@@ -8,7 +11,7 @@ const badgeVariants = cva(
     variants: {
       tone: {
         neutral: 'border-border bg-sunken text-muted',
-        brand: 'border-primary/25 bg-primary-soft text-primary-hover',
+        brand: 'border-primary/25 bg-sky text-primary-hover',
         success: 'border-success/30 bg-success-soft text-success',
         warning: 'border-warning/30 bg-warning-soft text-warning',
         danger: 'border-danger/30 bg-danger-soft text-danger',
@@ -34,10 +37,15 @@ const REGISTRY = {
   access: ACCESS_STATUS_META,
   account: ACCOUNT_STATUS_META,
   check: CHECK_STATUS_META,
+  results: RESULTS_STATE_META,
+  connection: CONNECTION_META,
+  difficulty: DIFFICULTY_META,
+  dispute: DISPUTE_STATUS_META,
+  outcome: DISPUTE_OUTCOME_META,
 }
 
 /**
- * <StatusBadge kind="exam" status="ONGOING" />
+ * <StatusBadge kind="exam" status="ONGOING" />  (kinds: exam, access, account, check, results, connection, difficulty, dispute, outcome)
  * `status` is whatever string the server sent; `label` overrides the text.
  */
 export function StatusBadge({ kind = 'exam', status, label, className }) {

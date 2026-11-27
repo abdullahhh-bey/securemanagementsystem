@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { Brand } from '@/components/layout/Brand'
+import { BrandLogo } from '@/components/layout/BrandLogo'
 import { ErrorState } from '@/components/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,7 +9,7 @@ import ForbiddenPage from '@/pages/errors/ForbiddenPage'
 export function FullPageLoader() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background" role="status">
-      <Brand />
+      <BrandLogo size="md" />
       <div className="flex w-56 flex-col gap-2">
         <Skeleton className="h-3 w-full" />
         <Skeleton className="h-3 w-3/4" />

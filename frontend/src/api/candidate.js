@@ -4,6 +4,7 @@ import * as mock from './mock/candidate'
 /**
  * Candidate exam: Exam fields plus
  *   accessStatus: AVAILABLE | UPCOMING | CLOSED   <- decided by the server
+ *   resultsPublished: boolean                      <- true once the examiner has published results (see api/results.js)
  */
 
 // GET /api/candidate/exams -> CandidateExam[]

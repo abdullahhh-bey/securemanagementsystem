@@ -24,7 +24,7 @@ export function Switch({ className, disabledReason, onCheckedChange, ...props })
       )}
       {...props}
     >
-      <SwitchPrimitive.Thumb className="block size-4.5 rounded-full bg-ink transition-transform data-[state=checked]:translate-x-5 data-[state=checked]:bg-white" />
+      <SwitchPrimitive.Thumb className="block size-4.5 rounded-full bg-ink transition-transform data-[state=checked]:translate-x-5 data-[state=checked]:bg-surface" />
     </SwitchPrimitive.Root>
   )
 

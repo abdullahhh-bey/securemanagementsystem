@@ -64,7 +64,7 @@ export function CandidatePicker({ candidates, selected, onChange, isLoading = fa
           />
         ) : (
           <>
-            <div className="flex items-center gap-3 border-b border-border bg-background/60 px-4 py-2.5">
+            <div className="flex items-center gap-3 border-b border-border bg-sky px-4 py-2.5">
               <Checkbox
                 id={`${uid}-all`}
                 checked={allShown ? true : someShown ? 'indeterminate' : false}
@@ -77,7 +77,7 @@ export function CandidatePicker({ candidates, selected, onChange, isLoading = fa
             </div>
             <ul role="group" aria-label="Candidates" className="max-h-72 divide-y divide-border overflow-y-auto">
               {shown.map((candidate) => (
-                <li key={candidate.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-background/60">
+                <li key={candidate.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-sky/60">
                   <Checkbox
                     id={`${uid}-${candidate.id}`}
                     checked={selectedSet.has(candidate.id)}

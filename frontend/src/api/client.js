@@ -71,7 +71,11 @@ async function parseBody(response) {
   }
 }
 
-export async function request(path, { method = 'GET', body, params, signal, skipUnauthorizedHandler = false } = {}) {
+/**
+ * `blob: true` is for file downloads (PDF, CSV): resolves to `{ blob, filename }`,
+ * with the filename taken from the Content-Disposition header.
+ */
+export async function request(path, { method = 'GET', body, params, signal, skipUnauthorizedHandler = false, blob = false } = {}) {
   let url = `${BASE_URL}${path}`
   if (params) {
     const query = new URLSearchParams(
@@ -98,6 +102,12 @@ export async function request(path, { method = 'GET', body, params, signal, skip
       code: 'NETWORK_ERROR',
       message: "We couldn't reach the server. Check your connection and try again.",
     })
+  }
+
+  if (blob && response.ok) {
+    const disposition = response.headers.get('content-disposition') ?? ''
+    const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? 'download'
+    return { blob: await response.blob(), filename }
   }
 
   const data = await parseBody(response)

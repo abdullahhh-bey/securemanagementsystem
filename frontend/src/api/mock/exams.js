@@ -1,7 +1,8 @@
-import { enrollments, examStatus, exams, nextId, requireRole, toExamDto, users } from './db'
+import { currentUser, enrollments, examStatus, exams, nextId, requireRole, toExamDto, users } from './db'
 import { clone, delay, fail, serverNow } from './helpers'
+import { record } from './audit'
 
-function ownedExam(id) {
+export function ownedExam(id) {
   const me = requireRole('EXAMINER')
   const found = exams.find((e) => e.id === id)
   if (!found) fail(404, 'NOT_FOUND', 'This exam no longer exists.')
@@ -70,6 +71,7 @@ export async function createExam(input) {
   }
   exams.push(created)
   enrollments.set(created.id, new Map())
+  record(me, 'EXAM_CREATED', created.title)
   return clone(toExamDto(created))
 }
 
@@ -114,6 +116,7 @@ export async function publishExam(id) {
     })
   }
   target.published = true
+  record(currentUser(), 'EXAM_PUBLISHED', target.title)
   target.updatedAt = new Date(serverNow()).toISOString()
   return clone(toExamDto(target))
 }

@@ -15,7 +15,7 @@ export function Tooltip({ content, children, side = 'top', className }) {
           side={side}
           sideOffset={6}
           className={cn(
-            'z-[70] max-w-xs rounded-md bg-ink px-3 py-2 text-sm leading-snug text-white',
+            'z-[70] max-w-xs rounded-md bg-ink px-3 py-2 text-sm leading-snug text-on-dark',
             'animate-[fade-in_120ms_ease-out]',
             className,
           )}

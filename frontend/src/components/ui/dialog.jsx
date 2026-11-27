@@ -26,7 +26,7 @@ export function DialogContent({ className, children, hideClose = false, ...props
       <DialogPrimitive.Content
         className={cn(
           'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-32px)] w-[calc(100vw-32px)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col',
-          'rounded-xl border border-border bg-surface shadow-[0_8px_32px_rgb(20_33_61/0.18)] animate-[pop-in_150ms_ease-out]',
+          'rounded-xl border border-border bg-surface shadow-dialog animate-[pop-in_150ms_ease-out]',
           className,
         )}
         {...props}

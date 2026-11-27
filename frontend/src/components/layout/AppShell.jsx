@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { SidebarNav } from './SidebarNav'
+import { AppFooter } from './AppFooter'
 import { SkipLink } from './SkipLink'
 import { TopBar } from './TopBar'
 import { cn } from '@/lib/utils'
@@ -49,12 +50,13 @@ export function AppShell({ nav, areaLabel, theme }) {
           >
             <Outlet />
           </main>
+          <AppFooter />
         </div>
       </div>
 
       <DialogPrimitive.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/50 animate-[fade-in_150ms_ease-out] lg:hidden" />
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-navy/60 animate-[fade-in_150ms_ease-out] lg:hidden" />
           <DialogPrimitive.Content
             aria-describedby={undefined}
             onCloseAutoFocus={(event) => {

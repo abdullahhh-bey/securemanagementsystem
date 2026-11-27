@@ -1,17 +1,22 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Pencil, UserPlus, Users } from 'lucide-react'
+import { Copy, FileUp, KeyRound, Pencil, UserPlus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
+import { ImportDialog } from '@/components/import/ImportDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { RoleChip, StatusBadge } from '@/components/StatusBadge'
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/useAuth'
+import { useImportUsers, useResetPassword } from '@/hooks/useAdmin'
 import { useUpdateUser, useUsers } from '@/hooks/useUsers'
+import { useToast } from '@/hooks/useToast'
 import { ROLE_OPTIONS } from '@/lib/constants'
-import { formatDate } from '@/lib/format'
+import { formatDate, formatDateTime } from '@/lib/format'
+import { parseUserRecord } from '@/lib/importSchemas'
 import { initials } from '@/lib/utils'
 import { CreateUserDialog } from './CreateUserDialog'
 import { EditRoleDialog } from './EditRoleDialog'
@@ -30,19 +35,49 @@ const FILTERS = [
   },
 ]
 
+const IMPORT_HELP =
+  'Upload a CSV or JSON file with columns: name, email, role (ADMIN, EXAMINER or CANDIDATE), password (at least 8 characters).'
+
 export default function AdminUsersPage() {
   const { user: me } = useAuth()
+  const toast = useToast()
   const [searchParams] = useSearchParams()
   const initialRole = ROLE_OPTIONS.some((o) => o.value === searchParams.get('role')) ? searchParams.get('role') : ''
 
   const { data: users, isPending, error, refetch, isRefetching } = useUsers()
   const [createOpen, setCreateOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [roleTarget, setRoleTarget] = useState(null)
   const [toggleTarget, setToggleTarget] = useState(null)
+  const [resetTarget, setResetTarget] = useState(null)
+  const [resetResult, setResetResult] = useState(null)
 
   const updateUser = useUpdateUser({
     successMessage: (updated) => `${updated.name} is now ${updated.isActive ? 'active' : 'inactive'}`,
   })
+
+  const importUsers = useImportUsers({
+    onSuccess: () => setImportOpen(false),
+  })
+
+  const resetPassword = useResetPassword({
+    successMessage: null,
+    onSuccess: (data) => {
+      const name = resetTarget?.name ?? 'User'
+      setResetTarget(null)
+      setResetResult({ ...data, userName: name })
+    },
+  })
+
+  const copyPassword = async () => {
+    if (!resetResult?.temporaryPassword) return
+    try {
+      await navigator.clipboard.writeText(resetResult.temporaryPassword)
+      toast.success('Copied to clipboard')
+    } catch {
+      toast.error('Could not copy to clipboard')
+    }
+  }
 
   const columns = [
     {
@@ -57,7 +92,7 @@ export default function AdminUsersPage() {
           <div className="min-w-0">
             <p className="flex items-center gap-2 font-semibold">
               <span className="truncate">{u.name}</span>
-              {u.id === me.id && <span className="rounded bg-primary-soft px-1.5 py-0.5 text-xs font-semibold text-primary-hover">You</span>}
+              {u.id === me.id && <span className="rounded bg-sky px-1.5 py-0.5 text-xs font-semibold text-primary-hover">You</span>}
             </p>
             <p className="truncate text-xs text-muted">{u.email}</p>
           </div>
@@ -87,15 +122,26 @@ export default function AdminUsersPage() {
       header: <span className="sr-only">Actions</span>,
       className: 'text-right',
       cell: (u) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setRoleTarget(u)}
-          aria-label={`Change role for ${u.name}`}
-          disabledReason={u.id === me.id ? "You can't change your own role." : undefined}
-        >
-          <Pencil /> Change role
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setRoleTarget(u)}
+            aria-label={`Change role for ${u.name}`}
+            disabledReason={u.id === me.id ? "You can't change your own role." : undefined}
+          >
+            <Pencil /> Change role
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setResetTarget(u)}
+            aria-label={`Reset password for ${u.name}`}
+            disabledReason={u.id === me.id ? "Use account settings to change your own password." : undefined}
+          >
+            <KeyRound /> Reset password
+          </Button>
+        </div>
       ),
     },
   ]
@@ -108,9 +154,14 @@ export default function AdminUsersPage() {
         title="Users"
         description="Create accounts, change roles and control who can sign in."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <UserPlus /> Create user
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setImportOpen(true)}>
+              <FileUp /> Import users
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <UserPlus /> Create user
+            </Button>
+          </div>
         }
       />
 
@@ -143,6 +194,18 @@ export default function AdminUsersPage() {
       />
 
       <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        title="Import users"
+        description="Add many accounts at once from a spreadsheet export."
+        help={IMPORT_HELP}
+        parseRecord={parseUserRecord}
+        onImport={(rows) => importUsers.mutate(rows)}
+        isPending={importUsers.isPending}
+      />
+
       <EditRoleDialog user={roleTarget} onOpenChange={(open) => !open && setRoleTarget(null)} />
 
       <ConfirmDialog
@@ -159,6 +222,50 @@ export default function AdminUsersPage() {
         isPending={updateUser.isPending}
         onConfirm={() => updateUser.mutate({ id: toggleTarget.id, isActive: !toggleTarget.isActive }, { onSettled: () => setToggleTarget(null) })}
       />
+
+      <ConfirmDialog
+        open={Boolean(resetTarget)}
+        onOpenChange={(open) => !open && !resetPassword.isPending && setResetTarget(null)}
+        title={`Reset password for ${resetTarget?.name}?`}
+        description="A temporary password will be issued. They must change it at their next sign-in."
+        confirmLabel="Reset password"
+        tone="danger"
+        isPending={resetPassword.isPending}
+        onConfirm={() => resetPassword.mutate(resetTarget.id)}
+      />
+
+      <Dialog open={Boolean(resetResult)} onOpenChange={(open) => !open && setResetResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Temporary password for {resetResult?.userName}</DialogTitle>
+            <DialogDescription>
+              Share this password securely. It will not be shown again after you close this dialog.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <p className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-warning">
+              Copy the password now — you cannot retrieve it later.
+            </p>
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted">Temporary password</p>
+              <p className="num break-all rounded-md border border-border bg-sunken px-3 py-2 font-mono text-sm font-semibold">
+                {resetResult?.temporaryPassword}
+              </p>
+            </div>
+            <p className="text-sm text-muted">
+              Expires <span className="num font-medium text-ink">{formatDateTime(resetResult?.expiresAt)}</span>
+            </p>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setResetResult(null)}>
+              Done
+            </Button>
+            <Button onClick={copyPassword}>
+              <Copy /> Copy password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

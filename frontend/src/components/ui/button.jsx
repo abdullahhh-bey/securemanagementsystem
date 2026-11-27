@@ -11,10 +11,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-white hover:bg-primary-hover aria-disabled:hover:bg-primary',
+        primary: 'bg-primary text-on-primary hover:bg-primary-hover aria-disabled:hover:bg-primary',
         secondary: 'border border-input bg-surface text-ink hover:bg-sunken aria-disabled:hover:bg-surface',
         ghost: 'text-ink hover:bg-sunken aria-disabled:hover:bg-transparent',
-        danger: 'bg-danger text-white hover:bg-[#991b1b]',
+        danger: 'bg-danger text-on-primary hover:bg-danger-hover',
         'danger-outline':
           'border border-danger/60 bg-surface text-danger hover:bg-danger-soft aria-disabled:hover:bg-surface',
         link: 'h-auto rounded-sm p-0 text-primary underline-offset-4 hover:text-primary-hover hover:underline',
