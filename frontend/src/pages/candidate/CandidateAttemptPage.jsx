@@ -329,12 +329,11 @@ export default function CandidateAttemptPage() {
             >
               <ArrowLeft /> Previous
             </Button>
-            <Button
-              onClick={() => setActiveIndex((index) => Math.min(questions.length - 1, index + 1))}
-              disabled={activeIndex >= questions.length - 1}
-            >
-              Next <ArrowRight />
-            </Button>
+            {activeIndex < questions.length - 1 && (
+              <Button onClick={() => setActiveIndex((index) => Math.min(questions.length - 1, index + 1))}>
+                Next <ArrowRight />
+              </Button>
+            )}
           </div>
         </div>
 

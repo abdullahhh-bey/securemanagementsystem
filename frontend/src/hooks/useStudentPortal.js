@@ -1,4 +1,5 @@
-import { useCallback, useMutation, useRef, useQuery } from '@tanstack/react-query'
+import { useCallback, useRef } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import * as candidateApi from '@/api/candidate'
 import { queryKeys } from '@/lib/queryKeys'
 import { useAppMutation } from './useAppMutation'
