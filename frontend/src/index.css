@@ -128,8 +128,25 @@
   }
 }
 
+@keyframes loader-logo-motion {
+  0%,
+  100% {
+    opacity: 0.84;
+    transform: translateY(0) scale(0.99);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
 @layer components {
   .page-enter {
     animation: page-enter 220ms ease-out both;
+  }
+
+  .loader-logo {
+    animation: loader-logo-motion 2.4s ease-in-out infinite;
+    will-change: transform, opacity;
   }
 }

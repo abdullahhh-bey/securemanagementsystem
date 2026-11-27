@@ -1,7 +1,6 @@
 import { normalizeDifficulty, normalizeQuestionType } from '@/lib/schema'
 
 const ROLES = ['ADMIN', 'EXAMINER', 'CANDIDATE']
-const RULES = ['ALL_OR_NOTHING', 'PARTIAL']
 
 const pick = (values, ...keys) => {
   for (const key of keys) {
@@ -19,9 +18,8 @@ function normalizeType(raw) {
     .toUpperCase()
     .replace(/[\s-]+/g, '_')
   if (typeRaw === 'SINGLE' || typeRaw === 'MCQSINGLE' || typeRaw === 'MCQ_SINGLE') return 'SINGLE_CHOICE'
-  if (typeRaw === 'MULTI' || typeRaw === 'MCQMULTI' || typeRaw === 'MULTIPLE' || typeRaw === 'MCQ_MULTI') return 'MULTIPLE_SELECT'
   if (typeRaw === 'WRITTEN' || typeRaw === 'ESSAY' || typeRaw === 'TEXT') return 'WRITTEN'
-  if (typeRaw === 'SINGLE_CHOICE' || typeRaw === 'MULTIPLE_SELECT') return typeRaw
+  if (typeRaw === 'SINGLE_CHOICE') return typeRaw
   return normalizeQuestionType(typeRaw) ?? typeRaw
 }
 
@@ -86,16 +84,15 @@ function validateQuestionInput(input) {
   const messages = []
   const type = normalizeQuestionType(input.type) ?? normalizeType(input.type)
   const difficulty = normalizeDifficulty(input.difficulty)
-  if (!type) messages.push('type must be SINGLE_CHOICE, MULTIPLE_SELECT or WRITTEN')
+  if (!['SINGLE_CHOICE', 'WRITTEN'].includes(type)) messages.push('type must be SINGLE_CHOICE or WRITTEN')
   if (!input.text?.trim()) messages.push('text is required')
-  if (!input.topic?.trim()) messages.push('topic is required')
   if (!difficulty) messages.push('difficulty must be easy, medium or hard')
   if (!(Number(input.defaultMarks) > 0)) messages.push('marks must be more than zero')
 
   let options = []
   let markingRule = null
   let penalty = 0
-  const isChoice = type === 'SINGLE_CHOICE' || type === 'MULTIPLE_SELECT'
+  const isChoice = type === 'SINGLE_CHOICE'
   if (isChoice) {
     options = (input.options ?? [])
       .map((o) => ({ text: String(o.text ?? '').trim(), isCorrect: Boolean(o.isCorrect) }))
@@ -104,14 +101,8 @@ function validateQuestionInput(input) {
     if (options.length < 2) messages.push('add at least two answer options')
     else if (correct === 0) messages.push('mark at least one option as correct')
     else if (type === 'SINGLE_CHOICE' && correct > 1) messages.push('a single-answer question can have only one correct option')
-    if (type === 'MULTIPLE_SELECT') {
-      markingRule = input.markingRule || 'ALL_OR_NOTHING'
-      if (!RULES.includes(markingRule)) messages.push('markingRule must be ALL_OR_NOTHING or PARTIAL')
-      if (markingRule === 'PARTIAL') {
-        penalty = Number(input.penalty ?? 0)
-        if (Number.isNaN(penalty) || penalty < 0 || penalty > 1) messages.push('penalty must be a fraction between 0 and 1')
-      }
-    }
+    penalty = Number(input.penalty ?? 0.25)
+    if (Number.isNaN(penalty) || penalty < 0 || penalty > 1) messages.push('penalty must be a fraction between 0 and 1')
   }
   if (messages.length) return { ok: false, messages }
   return {
@@ -119,7 +110,7 @@ function validateQuestionInput(input) {
     value: {
       type,
       text: input.text.trim(),
-      topic: input.topic.trim(),
+      topic: input.topic?.trim() ?? '',
       difficulty,
       defaultMarks: Number(input.defaultMarks),
       options,

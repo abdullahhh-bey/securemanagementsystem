@@ -48,12 +48,12 @@ export const round2 = (n) => Math.round(n * 100) / 100
  * Question: { id, ownerId, type: MCQ_SINGLE | MCQ_MULTI | WRITTEN, text, topic,
  *   difficulty: easy | medium | hard, defaultMarks,
  *   options: [{ id, text, isCorrect }]            (MCQ only)
- *   markingRule: ALL_OR_NOTHING | PARTIAL, penalty (MCQ_MULTI only; fraction of the marks lost per wrong option)
+ *   penalty (MCQ_SINGLE only; fraction of marks lost for a wrong answer)
  *   modelAnswer (WRITTEN only, optional), createdAt }
  */
 export const questions = []
 
-function addQuestion({ id, ownerId = 'u_3', type, topic, difficulty, text, options = [], correct = [], rule, penalty = 0, marks, model = '' }) {
+function addQuestion({ id, ownerId = 'u_3', type, topic, difficulty, text, options = [], correct = [], rule, penalty = 0.25, marks, model = '' }) {
   questions.push({
     id,
     ownerId,
@@ -64,26 +64,24 @@ function addQuestion({ id, ownerId = 'u_3', type, topic, difficulty, text, optio
     defaultMarks: marks,
     options: options.map((optionText, i) => ({ id: `${id}_o${i + 1}`, text: optionText, isCorrect: correct.includes(i) })),
     markingRule: type === 'MCQ_MULTI' ? (rule ?? 'ALL_OR_NOTHING') : null,
-    penalty: type === 'MCQ_MULTI' && rule === 'PARTIAL' ? penalty : 0,
+    penalty: type === 'MCQ_SINGLE' ? penalty : type === 'MCQ_MULTI' && rule === 'PARTIAL' ? penalty : 0,
     modelAnswer: model,
     createdAt: at(-20 * DAY),
   })
 }
 const single = (id, topic, difficulty, text, options, correct, marks) =>
   addQuestion({ id, type: 'MCQ_SINGLE', topic, difficulty, text, options, correct: [correct], marks })
-const multi = (id, topic, difficulty, text, options, correct, rule, penalty, marks) =>
-  addQuestion({ id, type: 'MCQ_MULTI', topic, difficulty, text, options, correct, rule, penalty, marks })
 const written = (id, topic, difficulty, text, marks, model) => addQuestion({ id, type: 'WRITTEN', topic, difficulty, text, marks, model })
 
 // Networks
 single('q_net_osi', 'Networks', 'easy', 'Which layer of the OSI model is responsible for routing packets between networks?', ['Data link', 'Network', 'Transport', 'Session'], 1, 12)
 single('q_net_https', 'Networks', 'easy', 'What is the default TCP port for HTTPS?', ['80', '8080', '443', '22'], 2, 12)
 single('q_net_arp', 'Networks', 'medium', 'Which protocol resolves an IP address to a MAC address on a local network?', ['DNS', 'ARP', 'DHCP', 'ICMP'], 1, 12)
-multi('q_net_transport', 'Networks', 'medium', 'Select every protocol that operates at the transport layer.', ['TCP', 'UDP', 'IP', 'HTTP', 'ICMP'], [0, 1], 'PARTIAL', 0.25, 12)
+single('q_net_transport', 'Networks', 'medium', 'Which protocol provides reliable, connection-oriented delivery at the transport layer?', ['TCP', 'UDP', 'IP', 'HTTP', 'ICMP'], 0, 12)
 single('q_net_slow', 'Networks', 'hard', 'During TCP slow start, how does the congestion window grow?', ['Linearly each RTT', 'Exponentially each RTT', 'It stays constant', 'It halves each RTT'], 1, 14)
 single('q_net_flow', 'Networks', 'medium', 'Which TCP mechanism prevents a fast sender from overwhelming a slow receiver?', ['Congestion window', 'Sliding window (flow control)', 'Slow start', 'Checksum'], 1, 14)
 single('q_net_subnet', 'Networks', 'medium', 'How many usable host addresses does a /26 IPv4 subnet provide?', ['62', '64', '30', '126'], 0, 14)
-multi('q_net_bgp', 'Networks', 'hard', 'Which statements about BGP are true?', ['It is a path-vector protocol', 'It is used between autonomous systems', 'It uses hop count as its only metric', 'It runs over TCP'], [0, 1, 3], 'ALL_OR_NOTHING', 0, 14)
+single('q_net_bgp', 'Networks', 'hard', 'Which statement about BGP is true?', ['It is a path-vector protocol', 'It is used between autonomous systems', 'It uses hop count as its only metric', 'It runs over TCP'], 0, 14)
 written('q_net_hs', 'Networks', 'medium', 'Explain how the TCP three-way handshake establishes a connection and why it is needed.', 12, 'SYN, SYN-ACK, ACK exchange; synchronises sequence numbers and confirms both sides can send and receive.')
 written('q_net_rt', 'Networks', 'hard', 'Compare distance-vector and link-state routing. Give one advantage of each.', 12, 'Distance-vector: simple, low overhead. Link-state: full topology, fast convergence, no count-to-infinity.')
 
@@ -91,27 +89,27 @@ written('q_net_rt', 'Networks', 'hard', 'Compare distance-vector and link-state 
 single('q_ds_stack', 'Data Structures', 'easy', 'Which data structure follows last-in, first-out order?', ['Queue', 'Stack', 'Heap', 'Graph'], 1, 15)
 single('q_ds_bsearch', 'Data Structures', 'easy', 'What is the time complexity of binary search on a sorted array?', ['O(n)', 'O(log n)', 'O(n log n)', 'O(1)'], 1, 15)
 single('q_ds_hash', 'Data Structures', 'medium', 'What is the worst-case lookup time in a hash table that resolves collisions by chaining?', ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'], 2, 15)
-multi('q_ds_stable', 'Data Structures', 'medium', 'Which of these sorting algorithms are stable?', ['Merge sort', 'Insertion sort', 'Quick sort (typical)', 'Heap sort'], [0, 1], 'PARTIAL', 0.5, 15)
+single('q_ds_stable', 'Data Structures', 'medium', 'Which sorting algorithm is stable?', ['Merge sort', 'Insertion sort', 'Quick sort (typical)', 'Heap sort'], 0, 15)
 single('q_ds_avl', 'Data Structures', 'hard', 'What is the minimum number of nodes in an AVL tree of height 4 (a single node has height 0)?', ['9', '12', '15', '20'], 1, 20)
 written('q_ds_quick', 'Data Structures', 'medium', "Explain when quicksort hits its worst case and how choosing a random pivot helps.", 20, 'Sorted or reverse-sorted input with a fixed pivot gives O(n^2); a random pivot makes bad splits unlikely, giving expected O(n log n).')
 
 // Operating systems
 single('q_os_sjf', 'Operating Systems', 'easy', 'Which scheduling algorithm can starve long-running processes?', ['Round robin', 'Shortest job first', 'First come first served', 'Multilevel feedback with ageing'], 1, 10)
 single('q_os_belady', 'Operating Systems', 'medium', "Belady's anomaly can occur with which page replacement policy?", ['LRU', 'Optimal', 'FIFO', 'Clock with reference bits'], 2, 10)
-multi('q_os_coffman', 'Operating Systems', 'medium', 'Select the necessary conditions for deadlock.', ['Mutual exclusion', 'Hold and wait', 'No preemption', 'Circular wait', 'Demand paging'], [0, 1, 2, 3], 'ALL_OR_NOTHING', 0, 10)
+single('q_os_coffman', 'Operating Systems', 'medium', 'Which is a necessary condition for deadlock?', ['Mutual exclusion', 'Hold and wait', 'No preemption', 'Circular wait', 'Demand paging'], 0, 10)
 written('q_os_thread', 'Operating Systems', 'medium', 'Distinguish a process from a thread and give one benefit of using threads.', 10, 'Threads share the address space of their process; cheaper creation and communication than processes.')
 
 // Databases
 single('q_db_3nf', 'Databases', 'medium', 'Which normal form removes transitive dependencies?', ['1NF', '2NF', '3NF', 'BCNF only'], 2, 20)
 single('q_db_having', 'Databases', 'easy', 'Which SQL clause filters groups after aggregation?', ['WHERE', 'HAVING', 'GROUP BY', 'ORDER BY'], 1, 20)
-multi('q_db_acid', 'Databases', 'easy', 'Which of these are ACID properties?', ['Atomicity', 'Consistency', 'Isolation', 'Durability', 'Availability'], [0, 1, 2, 3], 'ALL_OR_NOTHING', 0, 20)
+single('q_db_acid', 'Databases', 'easy', 'Which is an ACID property?', ['Atomicity', 'Consistency', 'Isolation', 'Durability', 'Availability'], 0, 20)
 single('q_db_serial', 'Databases', 'hard', 'Which isolation level prevents phantom reads?', ['Read uncommitted', 'Read committed', 'Repeatable read (basic)', 'Serializable'], 3, 20)
 
 // Software engineering
 single('q_se_func', 'Software Engineering', 'easy', 'Which of these is a non-functional requirement?', ['The system shall send a receipt by email', 'Pages shall load within 2 seconds', 'Users can reset their password', 'Admins can export reports'], 1, 5)
 single('q_se_integ', 'Software Engineering', 'medium', 'Which testing level verifies the interaction between modules?', ['Unit testing', 'Integration testing', 'Acceptance testing', 'Smoke testing'], 1, 5)
 single('q_se_agile', 'Software Engineering', 'easy', 'In Scrum, who is responsible for ordering the product backlog?', ['Scrum master', 'Product owner', 'Developers', 'Stakeholders'], 1, 5)
-multi('q_se_solid', 'Software Engineering', 'medium', 'Which of these belong to the SOLID principles?', ['Single responsibility', 'Open/closed', 'Dependency inversion', 'Don\u2019t repeat yourself'], [0, 1, 2], 'PARTIAL', 0.25, 5)
+single('q_se_solid', 'Software Engineering', 'medium', 'Which is one of the SOLID design principles?', ['Single responsibility', 'Open/closed', 'Dependency inversion', 'Don\u2019t repeat yourself'], 0, 5)
 written('q_se_review', 'Software Engineering', 'medium', 'Give two benefits of code review besides finding bugs.', 5, 'Knowledge sharing; consistent style; mentoring.')
 
 // A different examiner's questions (used to check ownership).
@@ -128,14 +126,14 @@ export const examQuestions = new Map([
   ['ex_104', ['q_db_3nf:20', 'q_db_having:20', 'q_db_acid:20', 'q_db_serial:20']],
   [
     'ex_105',
-    ['q_net_osi:12', 'q_net_https:12', 'q_net_arp:12', 'q_net_transport:12', 'q_net_hs:12', 'q_net_rt:12', 'q_net_slow:14:A', 'q_net_flow:14:A', 'q_net_subnet:14:B', 'q_net_bgp:14:B'],
+    ['q_net_osi:12', 'q_net_https:12', 'q_net_arp:12', 'q_net_transport:12', 'q_net_hs:12', 'q_net_rt:12', 'q_net_slow:14', 'q_net_subnet:14'],
   ],
   ['ex_106', ['q_se_func:5', 'q_se_integ:5', 'q_se_agile:5', 'q_se_solid:5', 'q_se_review:5']],
 ].map(([examId, items]) => [
   examId,
   items.map((entry) => {
-    const [questionId, marks, group] = entry.split(':')
-    return { questionId, marks: Number(marks), group: group ?? null }
+    const [questionId, marks] = entry.split(':')
+    return { questionId, marks: Number(marks) }
   }),
 ]))
 
@@ -168,7 +166,7 @@ export function markQuestion(question, marks, answer, writtenGrade, negativeMark
   }
   const selected = answer?.selected ?? []
   if (selected.length === 0) return 0
-  const wrongPenalty = negativeMarking ? round2(marks * 0.25) : 0
+  const wrongPenalty = negativeMarking ? round2(marks * (question.penalty ?? 0.25)) : 0
   const correctIds = question.options.filter((o) => o.isCorrect).map((o) => o.id)
   if (question.type === 'MCQ_SINGLE') return selected[0] === correctIds[0] ? marks : -wrongPenalty
   const hits = selected.filter((id) => correctIds.includes(id)).length

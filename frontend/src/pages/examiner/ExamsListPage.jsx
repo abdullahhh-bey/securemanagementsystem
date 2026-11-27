@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronRight, ClipboardList, Plus } from 'lucide-react'
+import { ChevronRight, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
@@ -56,15 +56,8 @@ export default function ExamsListPage() {
   return (
     <>
       <PageHeader
-        title="My exams"
+        title="Exams"
         description="Every exam you have created, from first draft to final results."
-        actions={
-          <Button asChild>
-            <Link to="/examiner/exams/new">
-              <Plus /> Create exam
-            </Link>
-          </Button>
-        }
       />
       <DataTable
         caption="Your exams"
@@ -84,14 +77,7 @@ export default function ExamsListPage() {
           <EmptyState
             icon={ClipboardList}
             title="You haven't created any exams yet"
-            description="Set a schedule, choose the settings, then enroll candidates and publish when you're ready."
-            action={
-              <Button asChild>
-                <Link to="/examiner/exams/new">
-                  <Plus /> Create your first exam
-                </Link>
-              </Button>
-            }
+            description="Use Create exam in the teacher navigation to set up your first assessment."
           />
         }
       />

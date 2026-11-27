@@ -66,7 +66,7 @@ export default function CandidateExamPage() {
                 { label: 'Total marks', value: String(exam.totalMarks), mono: true },
               ]}
             />
-            <ExamSettings settings={exam.settings} />
+            <ExamSettings settings={exam.settings} studentView />
           </CardContent>
         </Card>
 

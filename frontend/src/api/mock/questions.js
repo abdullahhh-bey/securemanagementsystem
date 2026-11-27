@@ -42,7 +42,6 @@ export function normalizeQuestion(input) {
   const difficulty = DIFF_ALIASES[input.difficulty] ?? null
   if (!type) details.type = 'Choose a question type.'
   if (!input.text?.trim()) details.text = 'Question text is required.'
-  if (!input.topic?.trim()) details.topic = 'Topic is required.'
   if (!difficulty) details.difficulty = 'Difficulty must be easy, medium or hard.'
   if (!(Number(input.defaultMarks) > 0)) details.defaultMarks = 'Marks must be more than zero.'
 
@@ -55,7 +54,10 @@ export function normalizeQuestion(input) {
     if (options.length < 2) details.options = 'Add at least two answer options.'
     else if (correct === 0) details.options = 'Mark at least one option as correct.'
     else if (type === 'MCQ_SINGLE' && correct > 1) details.options = 'A single-answer question can have only one correct option.'
-    if (type === 'MCQ_MULTI') {
+    if (type === 'MCQ_SINGLE') {
+      penalty = Number(input.penalty ?? 0.25)
+      if (Number.isNaN(penalty) || penalty < 0 || penalty > 1) details.penalty = 'The penalty is a fraction between 0 and 1.'
+    } else if (type === 'MCQ_MULTI') {
       markingRule = input.markingRule ?? 'ALL_OR_NOTHING'
       if (!RULES.includes(markingRule)) details.markingRule = 'Choose a marking rule.'
       if (markingRule === 'PARTIAL') {
@@ -68,7 +70,7 @@ export function normalizeQuestion(input) {
   return {
     type,
     text: input.text.trim(),
-    topic: input.topic.trim(),
+    topic: input.topic?.trim() ?? '',
     difficulty,
     defaultMarks: Number(input.defaultMarks),
     options,

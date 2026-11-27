@@ -2,6 +2,7 @@ export const queryKeys = {
   me: ['auth', 'me'],
   serverTime: ['time'],
   users: ['admin', 'users'],
+  teacherStudents: ['examiner', 'students'],
   exams: ['exams'],
   exam: (id) => ['exams', String(id)],
   examCandidates: (id) => ['exams', String(id), 'candidates'],

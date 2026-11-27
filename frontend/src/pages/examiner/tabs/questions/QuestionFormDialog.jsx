@@ -4,17 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { applyFieldErrors } from '@/api/client'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input, Select, Textarea } from '@/components/ui/input'
 import { FormField } from '@/components/FormField'
 import { useCreateQuestion, useUpdateQuestion } from '@/hooks/useQuestions'
-import { DIFFICULTY_OPTIONS, MARKING_RULES, QUESTION_TYPE_OPTIONS } from '@/lib/constants'
+import { DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS } from '@/lib/constants'
 import { questionSchema } from '@/lib/schemas'
 
-const isMulti = (type) => type === 'MULTIPLE_SELECT' || type === 'MCQ_MULTI'
 const isSingle = (type) => type === 'SINGLE_CHOICE' || type === 'MCQ_SINGLE'
-const isChoice = (type) => isMulti(type) || isSingle(type)
+const isChoice = (type) => isSingle(type)
+const isLegacyMultipleChoice = (type) => type === 'MULTIPLE_SELECT' || type === 'MCQ_MULTI'
 
 const EMPTY = {
   type: 'SINGLE_CHOICE',
@@ -26,7 +25,6 @@ const EMPTY = {
     { text: '', isCorrect: false },
     { text: '', isCorrect: false },
   ],
-  markingRule: 'ALL_OR_NOTHING',
   penalty: 0.25,
   modelAnswer: '',
 }
@@ -34,15 +32,14 @@ const EMPTY = {
 const toForm = (question) =>
   question
     ? {
-        type: question.type,
+        type: isLegacyMultipleChoice(question.type) ? 'SINGLE_CHOICE' : question.type,
         text: question.text,
-        topic: question.topic,
+        topic: question.topic ?? '',
         difficulty: question.difficulty,
         defaultMarks: question.defaultMarks,
         options: question.options?.length
           ? question.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect }))
           : EMPTY.options,
-        markingRule: question.markingRule ?? 'ALL_OR_NOTHING',
         penalty: question.penalty ?? 0.25,
         modelAnswer: question.modelAnswer ?? '',
       }
@@ -53,12 +50,12 @@ const toPayload = (values) => {
   return {
     type: values.type,
     text: values.text.trim(),
-    topic: values.topic.trim(),
+    topic: values.topic?.trim() ?? '',
     difficulty: values.difficulty,
     defaultMarks: Number(values.defaultMarks),
     options: values.type === 'WRITTEN' ? [] : filled.map((o) => ({ text: o.text.trim(), isCorrect: o.isCorrect })),
-    markingRule: isMulti(values.type) ? values.markingRule : null,
-    penalty: isMulti(values.type) && values.markingRule === 'PARTIAL' ? Number(values.penalty) : 0,
+    markingRule: null,
+    penalty: values.type === 'SINGLE_CHOICE' ? Number(values.penalty) : 0,
     modelAnswer: values.type === 'WRITTEN' ? values.modelAnswer.trim() : '',
   }
 }
@@ -83,7 +80,6 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'options' })
   const type = useWatch({ control, name: 'type' })
-  const markingRule = useWatch({ control, name: 'markingRule' })
 
   useEffect(() => {
     if (open) reset(toForm(question))
@@ -114,7 +110,7 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
           <form id="question-form" noValidate className="grid gap-4" onSubmit={save}>
             <fieldset disabled={pending} className="grid gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Type" error={errors.type?.message} required>
+                <FormField label="Question type" error={errors.type?.message} required>
                   {(field) => (
                     <Select {...field} {...register('type')}>
                       {QUESTION_TYPE_OPTIONS.map((opt) => (
@@ -138,9 +134,15 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                 </FormField>
               </div>
 
+              {question && isLegacyMultipleChoice(question.type) && (
+                <p className="rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-sm text-ink" role="note">
+                  This existing question allowed more than one correct answer. Choose exactly one correct option to convert it to Multiple Choices.
+                </p>
+              )}
+
               <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-                <FormField label="Topic" error={errors.topic?.message} required>
-                  {(field) => <Input {...field} {...register('topic')} />}
+                <FormField label="Topic (optional)" error={errors.topic?.message}>
+                  {(field) => <Input {...field} {...register('topic')} placeholder="e.g. Networking" />}
                 </FormField>
                 <FormField label="Marks" error={errors.defaultMarks?.message} required>
                   {(field) => <Input {...field} type="number" min={1} step={1} {...register('defaultMarks', { valueAsNumber: true })} />}
@@ -153,6 +155,7 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
 
               {isChoice(type) && (
                 <div className="space-y-3">
+                  <p className="text-sm text-muted">Mark one correct answer. Students can select only one option.</p>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold">Options</p>
                     <Button type="button" variant="secondary" size="sm" onClick={() => append({ text: '', isCorrect: false })} disabled={fields.length >= 8}>
@@ -171,16 +174,16 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                           control={control}
                           name={`options.${index}.isCorrect`}
                           render={({ field: checkField }) => (
-                            <Checkbox
-                              className="mt-2.5"
+                            <input
+                              type="radio"
+                              name="correct-option"
+                              className="mt-2.5 size-4 shrink-0 accent-primary"
                               checked={checkField.value}
-                              onCheckedChange={(checked) => {
-                                if (isSingle(type) && checked === true) {
-                                  fields.forEach((_, i) => {
-                                    if (i !== index) setValue(`options.${i}.isCorrect`, false)
-                                  })
-                                }
-                                checkField.onChange(checked === true)
+                              onChange={() => {
+                                fields.forEach((_, i) => {
+                                  if (i !== index) setValue(`options.${i}.isCorrect`, false)
+                                })
+                                checkField.onChange(true)
                               }}
                               aria-label={`Mark option ${index + 1} as correct`}
                             />
@@ -203,25 +206,14 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                       </li>
                     ))}
                   </ul>
-                  {isMulti(type) && (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <FormField label="Marking rule" error={errors.markingRule?.message}>
-                        {(field) => (
-                          <Select {...field} {...register('markingRule')}>
-                            {Object.entries(MARKING_RULES).map(([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </Select>
-                        )}
-                      </FormField>
-                      {markingRule === 'PARTIAL' && (
-                        <FormField label="Penalty" error={errors.penalty?.message}>
-                          {(field) => <Input {...field} type="number" min={0} max={1} step={0.05} {...register('penalty', { valueAsNumber: true })} />}
-                        </FormField>
-                      )}
-                    </div>
+                  {type === 'SINGLE_CHOICE' && (
+                    <FormField
+                      label="Wrong-answer penalty (fraction of marks)"
+                      error={errors.penalty?.message}
+                      hint="For example, 0.25 deducts one quarter of this question's marks when exam negative marking is on."
+                    >
+                      {(field) => <Input {...field} type="number" min={0} max={1} step={0.05} {...register('penalty', { valueAsNumber: true })} />}
+                    </FormField>
                   )}
                 </div>
               )}

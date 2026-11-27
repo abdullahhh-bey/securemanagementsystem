@@ -26,6 +26,7 @@ const ExamShell = lazy(() => import('@/pages/examiner/ExamShell'))
 const ExamFormPage = lazy(() => import('@/pages/examiner/ExamFormPage'))
 const ExaminerDashboardPage = lazy(() => import('@/pages/examiner/ExaminerDashboardPage'))
 const ExaminerLayout = lazy(() => import('@/layouts/ExaminerLayout'))
+const ExaminerStudentsPage = lazy(() => import('@/pages/examiner/StudentsPage'))
 const ExamReviewPage = lazy(() => import('@/pages/examiner/ExamReviewPage'))
 const ExamsListPage = lazy(() => import('@/pages/examiner/ExamsListPage'))
 
@@ -97,6 +98,7 @@ export default function App() {
                     <Route path="/examiner" element={<ProtectedRoute allowedRoles={[ROLES.EXAMINER]} />}>
                       <Route element={<ExaminerLayout />}>
                         <Route index element={<ExaminerDashboardPage />} />
+                        <Route path="students" element={<ExaminerStudentsPage />} />
                         <Route path="exams" element={<ExamsListPage />} />
                         <Route path="exams/new" element={<ExamFormPage />} />
                         <Route path="exams/:id/sandbox" element={<ExamWorkspacePage />} />

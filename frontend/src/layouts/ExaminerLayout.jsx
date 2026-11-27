@@ -1,10 +1,12 @@
-import { ClipboardList, LayoutDashboard } from 'lucide-react'
+import { ClipboardList, LayoutDashboard, Plus, Users } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { NAVY_THEME } from './themes'
 
 const NAV = [
   { to: '/examiner', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/examiner/exams', label: 'My Exams', icon: ClipboardList },
+  { to: '/examiner/students', label: 'Students', icon: Users },
+  { to: '/examiner/exams', label: 'Exams', icon: ClipboardList },
+  { to: '/examiner/exams/new', label: 'Create exam', icon: Plus, end: true },
 ]
 
 export default function ExaminerLayout() {

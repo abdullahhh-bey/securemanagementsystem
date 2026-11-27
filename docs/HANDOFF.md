@@ -1,6 +1,6 @@
 # Handoff
 
-- **Current focus:** Integrate the isolated admin user-management router with the auth teammate's middleware and password hasher.
-- **Recent changes:** Added admin user listing/details/creation/profile/role/status endpoints, validation, audit logging, session revocation, last-admin safeguards, and tests. The module does not modify the shared server entry point.
-- **Known issues:** The admin router is not mounted until auth dependencies are supplied. Confirm that the auth module's password policy matches the initial-password validator. `backend/.env` needs `DIRECT_URL` for future Prisma migrations.
-- **Immediate next step:** Agree on `authenticate`, `requireAdmin`, actor-ID, and password-hasher exports with the auth teammate, then mount `createAdminRouter` at `/api/admin`.
+- **Current focus:** Continue frontend-only teacher portal work one area at a time.
+- **Recent changes:** Added local-mock Students directory and separate Dashboard, Students, Exams, and Create exam navigation; removed create actions from the Exams list; updated question authoring for optional topics, single-answer Multiple Choices, custom wrong-answer penalties, and no group controls; limited candidate exam settings to negative-marking status; normalized auth users and added a render-error fallback; adjusted `jsconfig.json`; simplified startup loading to the animated logo and made `/` route to login. No backend code or new API integration was added.
+- **Known issues:** Teacher announcements, consolidated results/disputes views, dispute chat UI, typography, and shared sidebar color remain.
+- **Immediate next step:** Run static lint/build validation; do not start a live server unless requested. Continue with the remaining teacher views and frontend-only dispute conversation.
