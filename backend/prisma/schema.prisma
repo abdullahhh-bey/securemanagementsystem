@@ -1,0 +1,547 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  EXAMINER
+  CANDIDATE
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_SELECT
+  WRITTEN
+}
+
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  WITHDRAWN
+}
+
+enum AttemptMode {
+  OFFICIAL
+  SANDBOX
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+  EXPIRED
+  ABANDONED
+}
+
+enum AnswerStatus {
+  UNANSWERED
+  ANSWERED
+}
+
+enum GradingMethod {
+  AUTO
+  MANUAL
+}
+
+enum ResultStatus {
+  PENDING_REVIEW
+  READY_TO_PUBLISH
+  PUBLISHED
+  WITHHELD
+}
+
+enum AttemptEventType {
+  NETWORK_DISCONNECTED
+  NETWORK_RESTORED
+  ANSWER_SAVE_FAILED
+  ANSWER_SAVE_SUCCEEDED
+  TAB_HIDDEN
+  WINDOW_BLURRED
+  ATTEMPT_RESUMED
+}
+
+enum EventReviewStatus {
+  UNREVIEWED
+  REVIEWED
+  ACTION_REQUIRED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ImportType {
+  CANDIDATES
+  QUESTIONS
+}
+
+enum ImportJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  PARTIALLY_FAILED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(320)
+  passwordHash String   @db.VarChar(255)
+  fullName     String   @db.VarChar(160)
+  role         UserRole @default(CANDIDATE)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  sessions              UserSession[]
+  createdExams          Exam[]                @relation("ExamOwner")
+  createdQuestions      Question[]            @relation("QuestionAuthor")
+  createdVersions       QuestionVersion[]     @relation("VersionAuthor")
+  enrollments           ExamEnrollment[]      @relation("EnrollmentCandidate")
+  createdEnrollments    ExamEnrollment[]      @relation("EnrollmentCreator")
+  attempts              ExamAttempt[]         @relation("AttemptParticipant")
+  announcements         ExamAnnouncement[]   @relation("AnnouncementAuthor")
+  gradedAnswers         AttemptAnswer[]       @relation("AnswerGrader")
+  reviewedResults       Result[]              @relation("ResultReviewer")
+  publishedResults      Result[]              @relation("ResultPublisher")
+  openedDisputes        ResultDispute[]       @relation("DisputeOpener")
+  resolvedDisputes      ResultDispute[]       @relation("DisputeResolver")
+  reviewedEvents        AttemptEvent[]        @relation("EventReviewer")
+  importJobs            ImportJob[]           @relation("ImportCreator")
+  generatedReports      GeneratedReport[]     @relation("ReportGenerator")
+  auditLogs             AuditLog[]            @relation("AuditActor")
+  candidatePreference   CandidatePreference?
+
+  @@index([role, isActive])
+  @@map("users")
+}
+
+model UserSession {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  tokenHash  String    @unique @db.VarChar(255)
+  expiresAt  DateTime  @db.Timestamptz(6)
+  revokedAt  DateTime? @db.Timestamptz(6)
+  lastUsedAt DateTime? @db.Timestamptz(6)
+  userAgent  String?   @db.VarChar(512)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model QuestionCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  questions Question[]
+
+  @@map("question_categories")
+}
+
+model Question {
+  id         String   @id @default(uuid()) @db.Uuid
+  authorId   String   @db.Uuid
+  categoryId String?  @db.Uuid
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  author   User              @relation("QuestionAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  category QuestionCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  versions QuestionVersion[]
+
+  @@index([authorId, isActive])
+  @@index([categoryId])
+  @@map("questions")
+}
+
+model QuestionVersion {
+  id            String             @id @default(uuid()) @db.Uuid
+  questionId    String             @db.Uuid
+  createdById   String             @db.Uuid
+  versionNumber Int
+  questionText  String             @db.Text
+  difficulty    QuestionDifficulty
+  type          QuestionType
+  defaultMarks  Decimal            @db.Decimal(8, 2)
+  markingGuide  String?            @db.Text
+  createdAt     DateTime           @default(now()) @db.Timestamptz(6)
+
+  question     Question       @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  createdBy    User           @relation("VersionAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  options      QuestionOption[]
+  examQuestions ExamQuestion[]
+  attemptQuestions AttemptQuestion[]
+
+  @@unique([questionId, versionNumber])
+  @@index([questionId, createdAt])
+  @@index([difficulty, type])
+  @@map("question_versions")
+}
+
+model QuestionOption {
+  id               String   @id @default(uuid()) @db.Uuid
+  questionVersionId String  @db.Uuid
+  position         Int
+  optionText       String   @db.Text
+  isCorrect        Boolean  @default(false)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  questionVersion QuestionVersion        @relation(fields: [questionVersionId], references: [id], onDelete: Restrict)
+  selectedIn      AttemptAnswerOption[]
+
+  @@unique([questionVersionId, position])
+  @@index([questionVersionId, isCorrect])
+  @@map("question_options")
+}
+
+model Exam {
+  id                String     @id @default(uuid()) @db.Uuid
+  ownerId           String     @db.Uuid
+  title             String     @db.VarChar(200)
+  description       String?    @db.Text
+  instructions      String?    @db.Text
+  startsAt          DateTime   @db.Timestamptz(6)
+  endsAt            DateTime   @db.Timestamptz(6)
+  durationMinutes   Int
+  maxAttempts       Int        @default(1)
+  randomizeQuestions Boolean   @default(false)
+  randomizeOptions   Boolean   @default(false)
+  status            ExamStatus @default(DRAFT)
+  publishedAt       DateTime?  @db.Timestamptz(6)
+  createdAt         DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @db.Timestamptz(6)
+
+  owner        User               @relation("ExamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  questions    ExamQuestion[]
+  enrollments  ExamEnrollment[]
+  attempts     ExamAttempt[]
+  announcements ExamAnnouncement[]
+
+  @@index([ownerId, status])
+  @@index([status, startsAt, endsAt])
+  @@map("exams")
+}
+
+model ExamQuestion {
+  id                String  @id @default(uuid()) @db.Uuid
+  examId            String  @db.Uuid
+  questionVersionId String  @db.Uuid
+  position          Int
+  assignedMarks     Decimal @db.Decimal(8, 2)
+
+  exam            Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionVersion QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([examId, position])
+  @@unique([examId, questionVersionId])
+  @@index([questionVersionId])
+  @@map("exam_questions")
+}
+
+model ExamEnrollment {
+  id           String           @id @default(uuid()) @db.Uuid
+  examId       String           @db.Uuid
+  candidateId  String           @db.Uuid
+  enrolledById String           @db.Uuid
+  status       EnrollmentStatus @default(ENROLLED)
+  enrolledAt   DateTime         @default(now()) @db.Timestamptz(6)
+  withdrawnAt  DateTime?        @db.Timestamptz(6)
+
+  exam       Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  candidate  User @relation("EnrollmentCandidate", fields: [candidateId], references: [id], onDelete: Restrict)
+  enrolledBy User @relation("EnrollmentCreator", fields: [enrolledById], references: [id], onDelete: Restrict)
+
+  @@unique([examId, candidateId])
+  @@index([candidateId, status])
+  @@index([examId, status])
+  @@map("exam_enrollments")
+}
+
+model ExamAttempt {
+  id              String        @id @default(uuid()) @db.Uuid
+  examId          String        @db.Uuid
+  participantId   String        @db.Uuid
+  attemptNumber   Int
+  mode            AttemptMode   @default(OFFICIAL)
+  status          AttemptStatus @default(IN_PROGRESS)
+  durationMinutes Int
+  startedAt       DateTime      @default(now()) @db.Timestamptz(6)
+  expiresAt       DateTime      @db.Timestamptz(6)
+  submittedAt     DateTime?     @db.Timestamptz(6)
+  lastActivityAt  DateTime      @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
+
+  exam          Exam             @relation(fields: [examId], references: [id], onDelete: Restrict)
+  participant   User             @relation("AttemptParticipant", fields: [participantId], references: [id], onDelete: Restrict)
+  questions     AttemptQuestion[]
+  events        AttemptEvent[]
+  scratchpad    AttemptScratchpad?
+  result        Result?
+
+  @@unique([examId, participantId, mode, attemptNumber])
+  @@index([examId, status, mode])
+  @@index([participantId, status])
+  @@index([status, expiresAt])
+  @@map("exam_attempts")
+}
+
+model AttemptQuestion {
+  id                String   @id @default(uuid()) @db.Uuid
+  attemptId         String   @db.Uuid
+  questionVersionId String   @db.Uuid
+  position          Int
+  assignedMarks     Decimal  @db.Decimal(8, 2)
+  optionOrder       String[] @default([])
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+
+  attempt         ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionVersion QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Restrict)
+  answer          AttemptAnswer?
+
+  @@unique([attemptId, position])
+  @@unique([attemptId, questionVersionId])
+  @@index([questionVersionId])
+  @@map("attempt_questions")
+}
+
+model AttemptAnswer {
+  id                String       @id @default(uuid()) @db.Uuid
+  attemptQuestionId String       @unique @db.Uuid
+  textResponse      String?      @db.Text
+  status            AnswerStatus @default(UNANSWERED)
+  isMarkedForReview Boolean      @default(false)
+  awardedMarks      Decimal?     @db.Decimal(8, 2)
+  gradingMethod     GradingMethod?
+  feedback          String?      @db.Text
+  gradedById        String?      @db.Uuid
+  gradedAt          DateTime?    @db.Timestamptz(6)
+  createdAt         DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime     @updatedAt @db.Timestamptz(6)
+
+  attemptQuestion AttemptQuestion       @relation(fields: [attemptQuestionId], references: [id], onDelete: Cascade)
+  selectedOptions AttemptAnswerOption[]
+  gradedBy        User?                 @relation("AnswerGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@index([status, isMarkedForReview])
+  @@index([gradedById])
+  @@map("attempt_answers")
+}
+
+model AttemptAnswerOption {
+  answerId  String   @db.Uuid
+  optionId  String   @db.Uuid
+  selectedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  answer AttemptAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  option QuestionOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  @@id([answerId, optionId])
+  @@index([optionId])
+  @@map("attempt_answer_options")
+}
+
+model ExamAnnouncement {
+  id          String   @id @default(uuid()) @db.Uuid
+  examId      String   @db.Uuid
+  authorId    String   @db.Uuid
+  title       String   @db.VarChar(200)
+  message     String   @db.Text
+  publishedAt DateTime? @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  exam     Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  author   User @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([examId, publishedAt])
+  @@map("exam_announcements")
+}
+
+model AttemptEvent {
+  id             String            @id @default(uuid()) @db.Uuid
+  attemptId      String            @db.Uuid
+  type           AttemptEventType
+  occurredAt     DateTime          @default(now()) @db.Timestamptz(6)
+  metadata       Json?
+  reviewStatus   EventReviewStatus @default(UNREVIEWED)
+  reviewNote     String?           @db.Text
+  reviewedById   String?           @db.Uuid
+  reviewedAt     DateTime?         @db.Timestamptz(6)
+
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  reviewedBy User?       @relation("EventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([attemptId, occurredAt])
+  @@index([type, occurredAt])
+  @@index([reviewStatus, occurredAt])
+  @@map("attempt_events")
+}
+
+model Result {
+  id            String       @id @default(uuid()) @db.Uuid
+  attemptId     String       @unique @db.Uuid
+  totalMarks    Decimal      @db.Decimal(8, 2)
+  obtainedMarks Decimal?     @db.Decimal(8, 2)
+  status        ResultStatus @default(PENDING_REVIEW)
+  reviewedById  String?      @db.Uuid
+  reviewedAt    DateTime?    @db.Timestamptz(6)
+  publishedById String?      @db.Uuid
+  publishedAt   DateTime?    @db.Timestamptz(6)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6)
+
+  attempt     ExamAttempt      @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  reviewedBy  User?            @relation("ResultReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  publishedBy User?            @relation("ResultPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  disputes    ResultDispute[]
+  reports     GeneratedReport[]
+
+  @@index([status, publishedAt])
+  @@index([reviewedById])
+  @@map("results")
+}
+
+model ResultDispute {
+  id           String        @id @default(uuid()) @db.Uuid
+  resultId     String        @db.Uuid
+  openedById   String        @db.Uuid
+  explanation  String        @db.Text
+  status       DisputeStatus @default(OPEN)
+  resolution   String?       @db.Text
+  resolvedById String?       @db.Uuid
+  resolvedAt   DateTime?     @db.Timestamptz(6)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(6)
+
+  result   Result @relation(fields: [resultId], references: [id], onDelete: Restrict)
+  openedBy User   @relation("DisputeOpener", fields: [openedById], references: [id], onDelete: Restrict)
+  resolvedBy User? @relation("DisputeResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@unique([resultId, openedById])
+  @@index([status, createdAt])
+  @@map("result_disputes")
+}
+
+model GeneratedReport {
+  id               String   @id @default(uuid()) @db.Uuid
+  resultId         String   @db.Uuid
+  generatedById    String   @db.Uuid
+  verificationCode String   @unique @default(uuid()) @db.Uuid
+  storageKey       String   @db.VarChar(1024)
+  checksum         String   @db.VarChar(128)
+  generatedAt      DateTime @default(now()) @db.Timestamptz(6)
+
+  result      Result @relation(fields: [resultId], references: [id], onDelete: Restrict)
+  generatedBy User   @relation("ReportGenerator", fields: [generatedById], references: [id], onDelete: Restrict)
+
+  @@index([resultId, generatedAt])
+  @@map("generated_reports")
+}
+
+model ImportJob {
+  id              String          @id @default(uuid()) @db.Uuid
+  createdById     String          @db.Uuid
+  type            ImportType
+  status          ImportJobStatus @default(QUEUED)
+  sourceFileName  String?         @db.VarChar(255)
+  storageKey      String?         @db.VarChar(1024)
+  totalRows       Int             @default(0)
+  succeededRows   Int             @default(0)
+  failedRows      Int             @default(0)
+  startedAt       DateTime?       @db.Timestamptz(6)
+  completedAt     DateTime?       @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
+
+  createdBy User          @relation("ImportCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  errors    ImportError[]
+
+  @@index([createdById, createdAt])
+  @@index([status, createdAt])
+  @@map("import_jobs")
+}
+
+model ImportError {
+  id          String   @id @default(uuid()) @db.Uuid
+  importJobId String   @db.Uuid
+  rowNumber   Int
+  fieldName   String?  @db.VarChar(100)
+  errorCode   String?  @db.VarChar(100)
+  message     String   @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+
+  importJob ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@index([importJobId, rowNumber])
+  @@map("import_errors")
+}
+
+model CandidatePreference {
+  userId      String   @id @db.Uuid
+  preferences Json     @default("{}")
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_preferences")
+}
+
+model AttemptScratchpad {
+  id        String   @id @default(uuid()) @db.Uuid
+  attemptId String   @unique @db.Uuid
+  content   String   @default("") @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  attempt ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("attempt_scratchpads")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String   @db.VarChar(100)
+  entityType String   @db.VarChar(100)
+  entityId   String   @db.VarChar(64)
+  oldValues  Json?
+  newValues  Json?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
