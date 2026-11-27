@@ -1,0 +1,1 @@
+-- No schema changes are required; the current schema is already present in the init migration.
