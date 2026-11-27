@@ -231,8 +231,8 @@ export function DataTable({
       {!isLoading && processed.length > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm text-muted sm:flex-row">
           <p role="status" aria-live="polite">
-            Showing <span className="num font-medium text-ink">{start + 1}{'\u2013'}{start + visible.length}</span> of{' '}
-            <span className="num font-medium text-ink">{processed.length}</span>
+            Showing <span className="num text-sm font-medium text-ink">{start + 1}{'\u2013'}{start + visible.length}</span> of{' '}
+            <span className="num text-sm font-medium text-ink">{processed.length}</span>
           </p>
           {pageCount > 1 && (
             <nav aria-label="Pagination" className="flex items-center gap-2">

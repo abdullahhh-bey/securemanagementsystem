@@ -9,7 +9,7 @@ function UpcomingChip({ exam, onElapsed }) {
   const { msLeft, elapsed } = useCountdown(exam.startAt, onElapsed)
   const label = msLeft === null ? 'Checking time\u2026' : elapsed ? 'Opening now\u2026' : `Opens in ${formatCountdown(msLeft)}`
   return (
-    <Badge tone="info" icon={elapsed ? LoaderCircle : Clock} className="num px-2.5 py-1 text-sm" role="timer" aria-label={`Opens ${formatDateTime(exam.startAt)}`} title={`Opens ${formatDateTime(exam.startAt)}`}>
+    <Badge tone="info" icon={elapsed ? LoaderCircle : Clock} className="exam-timer font-mono px-2.5 py-1 text-sm" role="timer" aria-label={`Opens ${formatDateTime(exam.startAt)}`} title={`Opens ${formatDateTime(exam.startAt)}`}>
       {label}
     </Badge>
   )

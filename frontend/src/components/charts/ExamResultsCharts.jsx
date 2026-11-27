@@ -2,7 +2,11 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Toolti
 
 const INK = 'var(--ink)'
 const MUTED = 'var(--muted)'
-const TOOLTIP_STYLE = { border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'none', fontSize: 13 }
+const SANS = 'var(--font-sans)'
+const MONO = 'var(--font-mono)'
+const TOOLTIP_STYLE = { border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'none', fontFamily: SANS, fontSize: 14 }
+const TOOLTIP_LABEL_STYLE = { fontFamily: SANS, fontWeight: 400 }
+const TOOLTIP_ITEM_STYLE = { fontFamily: MONO, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }
 const GRID = { vertical: false, stroke: 'var(--border)' }
 
 const DIFFICULTY_SCORE = { easy: 1, medium: 2, hard: 3 }
@@ -13,9 +17,9 @@ export function ScoreDistributionChart({ distribution }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={distribution} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
             <CartesianGrid {...GRID} />
-            <XAxis dataKey="range" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={{ fill: INK, fontSize: 12 }} label={{ value: 'Score %', position: 'insideBottom', offset: -2, fill: MUTED, fontSize: 11 }} />
-            <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: MUTED, fontSize: 12 }} label={{ value: 'Candidates', angle: -90, position: 'insideLeft', fill: MUTED, fontSize: 11 }} />
-            <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} contentStyle={TOOLTIP_STYLE} />
+            <XAxis dataKey="range" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={{ fill: INK, fontFamily: SANS, fontSize: 13, fontWeight: 500 }} label={{ value: 'Score %', position: 'insideBottom', offset: -2, fill: MUTED, fontFamily: SANS, fontSize: 12, fontWeight: 500 }} />
+            <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: MUTED, fontFamily: MONO, fontSize: 13, fontWeight: 500 }} label={{ value: 'Candidates', angle: -90, position: 'insideLeft', fill: MUTED, fontFamily: SANS, fontSize: 12, fontWeight: 500 }} />
+            <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
             <Bar dataKey="count" name="Candidates" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
@@ -32,9 +36,9 @@ function topHorizontalBarChart(data, dataKey, name, fill, ariaLabel) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }}>
             <CartesianGrid horizontal={false} stroke="var(--border)" />
-            <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={{ fill: MUTED, fontSize: 12 }} unit="%" />
-            <YAxis type="category" dataKey="label" width={44} tickLine={false} axisLine={false} tick={{ fill: INK, fontSize: 12, fontWeight: 500 }} />
-            <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`, name]} />
+            <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={{ fill: MUTED, fontFamily: MONO, fontSize: 13, fontWeight: 500 }} unit="%" />
+            <YAxis type="category" dataKey="label" width={44} tickLine={false} axisLine={false} tick={{ fill: INK, fontFamily: SANS, fontSize: 13, fontWeight: 500 }} />
+            <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} formatter={(v) => [`${v}%`, name]} />
             <Bar dataKey={dataKey} name={name} fill={fill} radius={[0, 4, 4, 0]} maxBarSize={28} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
@@ -67,14 +71,16 @@ export function DifficultyMismatchChart({ questions }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
             <CartesianGrid {...GRID} />
-            <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={{ fill: INK, fontSize: 12 }} />
-            <YAxis domain={[0, 3.5]} ticks={[1, 2, 3]} tickFormatter={(v) => ({ 1: 'Easy', 2: 'Medium', 3: 'Hard' })[v] ?? ''} tickLine={false} axisLine={false} tick={{ fill: MUTED, fontSize: 12 }} />
+            <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={{ fill: INK, fontFamily: SANS, fontSize: 13, fontWeight: 500 }} />
+            <YAxis domain={[0, 3.5]} ticks={[1, 2, 3]} tickFormatter={(v) => ({ 1: 'Easy', 2: 'Medium', 3: 'Hard' })[v] ?? ''} tickLine={false} axisLine={false} tick={{ fill: MUTED, fontFamily: SANS, fontSize: 13, fontWeight: 500 }} />
             <Tooltip
               cursor={{ fill: 'var(--chart-cursor)' }}
               contentStyle={TOOLTIP_STYLE}
+              labelStyle={TOOLTIP_LABEL_STYLE}
+              itemStyle={TOOLTIP_ITEM_STYLE}
               formatter={(v, key) => [{ 1: 'Easy', 2: 'Medium', 3: 'Hard' }[v] ?? v, key === 'declared' ? 'Declared' : 'Observed']}
             />
-            <Legend iconType="square" wrapperStyle={{ fontSize: 13, color: INK, paddingTop: 8 }} />
+            <Legend iconType="square" wrapperStyle={{ fontFamily: SANS, fontSize: 14, fontWeight: 500, color: INK, paddingTop: 8 }} />
             <Bar dataKey="declared" name="Declared" fill="var(--info)" radius={[4, 4, 0, 0]} maxBarSize={32} isAnimationActive={false} />
             <Bar dataKey="observed" name="Observed" radius={[4, 4, 0, 0]} maxBarSize={32} isAnimationActive={false}>
               {data.map((entry) => (

@@ -19,7 +19,7 @@ function MetricCard({ icon: Icon, label, value, detail, tone }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted">{label}</p>
-          <p className="num mt-3 text-2xl font-bold tracking-tight">{value}</p>
+          <p className="stat-number mt-3 text-2xl tracking-tight">{value}</p>
           <p className="mt-1 text-xs text-muted">{detail}</p>
         </div>
         <span className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${tone}`}>

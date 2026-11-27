@@ -34,7 +34,7 @@ export function StatCard({ label, value, icon: Icon, tone, hint, to, loading = f
         {loading ? (
           <Skeleton className="h-9 w-16" />
         ) : (
-          <p className="num text-3xl font-semibold leading-none">{value}</p>
+          <p className="stat-number text-3xl leading-none">{value}</p>
         )}
       </div>
       {(hint || to) && (

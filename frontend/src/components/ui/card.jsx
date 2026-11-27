@@ -9,7 +9,7 @@ export function CardHeader({ className, ...props }) {
 }
 
 export function CardTitle({ as: Comp = 'h2', className, ...props }) {
-  return <Comp className={cn('text-base font-semibold', className)} {...props} />
+  return <Comp className={cn('font-heading text-base font-semibold', className)} {...props} />
 }
 
 export function CardDescription({ className, ...props }) {

@@ -16,7 +16,7 @@ import { formatCountdown, formatDuration, formatWindow } from '@/lib/format'
 function WindowCountdown({ endAt }) {
   const { msLeft } = useCountdown(endAt)
   return (
-    <Badge tone="success" icon={Hourglass} className="num px-2.5 py-1 text-sm" role="timer">
+    <Badge tone="success" icon={Hourglass} className="exam-timer font-mono px-2.5 py-1 text-sm" role="timer">
       {msLeft === null ? 'Checking time\u2026' : `Window closes in ${formatCountdown(msLeft)}`}
     </Badge>
   )

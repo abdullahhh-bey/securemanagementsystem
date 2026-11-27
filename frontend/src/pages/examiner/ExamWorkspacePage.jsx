@@ -27,7 +27,7 @@ const ANSWER_STATUS = {
 function ExamTimer({ expiresAt }) {
   const { msLeft } = useCountdown(expiresAt)
   return (
-    <Badge tone={msLeft !== null && msLeft < 300_000 ? 'danger' : 'brand'} icon={Hourglass} className="num px-2.5 py-1 text-sm" role="timer">
+    <Badge tone={msLeft !== null && msLeft < 300_000 ? 'danger' : 'brand'} icon={Hourglass} className="exam-timer font-mono px-2.5 py-1 text-sm" role="timer">
       {msLeft === null ? 'Syncing clock…' : msLeft === 0 ? 'Time is up' : formatCountdown(msLeft)}
     </Badge>
   )
@@ -80,7 +80,7 @@ function QuestionBlock({ question, answer, onAnswer }) {
   return (
     <Card as="section" aria-labelledby={`q-title-${question.id}`} className="scroll-mt-24">
       <CardHeader>
-        <CardTitle id={`q-title-${question.id}`} className="flex flex-wrap items-baseline gap-2 text-base">
+        <CardTitle id={`q-title-${question.id}`} className="flex flex-wrap items-baseline gap-2 font-sans text-base font-medium">
           <span className="num text-muted">Q{question.number}</span>
           <span>{question.text}</span>
           <span className="num rounded bg-sunken px-2 py-0.5 text-xs font-semibold text-muted">

@@ -26,7 +26,7 @@ export function VerificationPanel({ report }) {
           <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
           Verification ID
         </p>
-        <p className="num mt-1 break-all text-xl font-semibold tracking-wide" data-testid="verification-id">
+        <p className="exam-id mt-1 break-all text-xl" data-testid="verification-id">
           {report.verificationId}
         </p>
         <p className="mt-2 break-all text-xs text-muted">Scan the code or open {report.verifyUrl} to confirm this report is genuine.</p>

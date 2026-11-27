@@ -35,7 +35,7 @@ export function FormField({ label, error, hint, required = false, className, chi
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} role="alert" className="flex items-start gap-1.5 text-sm font-medium text-danger">
+        <p id={errorId} role="alert" className="flex items-start gap-1.5 text-sm font-normal text-danger">
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </p>

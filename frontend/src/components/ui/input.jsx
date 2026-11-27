@@ -2,7 +2,7 @@ import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export const controlClasses =
-  'w-full rounded-md border border-input bg-surface px-3 text-sm text-ink placeholder:text-muted ' +
+  'w-full rounded-md border border-input bg-surface px-3 font-sans text-sm font-normal text-ink placeholder:text-muted ' +
   'transition-colors hover:border-ink/60 disabled:cursor-not-allowed disabled:bg-sunken disabled:opacity-70 ' +
   'aria-invalid:border-danger aria-invalid:ring-1 aria-invalid:ring-danger'
 

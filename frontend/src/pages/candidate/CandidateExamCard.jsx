@@ -26,7 +26,7 @@ export function CandidateExamCard({ exam, onEnter, isEntering, entryError, onEla
   return (
     <Card as="article" aria-labelledby={titleId} className="p-6 sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <h3 id={titleId} className="text-xl font-bold">
+        <h3 id={titleId} className="font-heading text-xl font-semibold">
           {exam.title}
         </h3>
         <div className="shrink-0">

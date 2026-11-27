@@ -20,7 +20,7 @@ function ExamTimer({ expiresAt }) {
   const { msLeft } = useCountdown(expiresAt)
   const urgent = msLeft !== null && msLeft < 5 * 60_000
   return (
-    <Badge tone={urgent ? 'danger' : 'brand'} icon={Clock3} className="num px-3 py-1.5 text-sm" role="timer">
+    <Badge tone={urgent ? 'danger' : 'brand'} icon={Clock3} className="exam-timer font-mono px-3 py-1.5 text-sm" role="timer">
       {msLeft === null ? 'Syncing clock…' : msLeft === 0 ? 'Time is up' : formatCountdown(msLeft)}
     </Badge>
   )
@@ -241,7 +241,7 @@ export default function CandidateAttemptPage() {
             <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-success-soft text-success" aria-hidden="true">
               <Check className="size-7" />
             </span>
-            <h2 className="text-xl font-bold">Your answers are recorded</h2>
+            <h2 className="text-xl font-semibold">Your answers are recorded</h2>
             <p className="text-sm text-muted">
               {summary
                 ? `${summary.answeredQuestions} of ${summary.totalQuestions} questions answered.`
@@ -292,7 +292,7 @@ export default function CandidateAttemptPage() {
                   <p className="text-sm font-semibold text-muted">Question {activeQuestion.position} of {questions.length}</p>
                   <Badge tone="neutral">{activeQuestion.assignedMarks} marks</Badge>
                 </div>
-                <CardTitle id={`question-title-${activeQuestion.id}`} className="pt-2 text-lg leading-relaxed">
+                <CardTitle id={`question-title-${activeQuestion.id}`} className="font-sans text-lg font-medium leading-relaxed">
                   {activeQuestion.question.text}
                 </CardTitle>
               </CardHeader>

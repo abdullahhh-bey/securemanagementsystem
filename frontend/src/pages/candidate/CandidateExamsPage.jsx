@@ -15,7 +15,7 @@ import { CandidateExamCard } from './CandidateExamCard'
 function Group({ id, icon: Icon, title, count, emptyTitle, emptyText, children }) {
   return (
     <section aria-labelledby={id} className="space-y-4">
-      <h2 id={id} className="flex items-center gap-2.5 text-lg font-bold">
+      <h2 id={id} className="flex items-center gap-2.5 text-lg font-semibold">
         <Icon className="size-5 text-primary" aria-hidden="true" />
         {title}
         <span className="num rounded-md bg-sunken px-2 py-0.5 text-sm font-medium text-muted">{count}</span>

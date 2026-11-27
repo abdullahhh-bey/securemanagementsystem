@@ -152,7 +152,7 @@ export default function CandidateDashboardPage() {
                         <p className="font-medium">{result.attempt?.exam?.title ?? 'Exam result'}</p>
                         <p className="text-xs text-muted">Published {formatDateTime(result.publishedAt)}</p>
                       </div>
-                      <p className="num font-semibold">{result.obtainedMarks ?? '—'} / {result.totalMarks}</p>
+                      <p className="stat-number text-lg">{result.obtainedMarks ?? '—'} / {result.totalMarks}</p>
                     </li>
                   ))}
                 </ul>

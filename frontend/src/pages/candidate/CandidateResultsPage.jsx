@@ -69,7 +69,7 @@ export default function CandidateResultsPage() {
                   </div>
                   <div className="flex items-center justify-between gap-5 border-t border-border pt-4 sm:border-0 sm:pt-0">
                     <div className="text-right">
-                      <p className="num text-2xl font-bold">
+                      <p className="stat-number text-2xl">
                         {obtained === null ? 'Pending' : `${obtained} / ${total}`}
                       </p>
                       <p className="text-xs text-muted">{percent === null ? 'Score unavailable' : `${percent}%`}</p>

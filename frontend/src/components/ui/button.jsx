@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { Tooltip } from './tooltip'
 
 const buttonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors ' +
+  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap font-sans font-semibold transition-colors ' +
     'disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ' +
     '[&_svg]:size-4 [&_svg]:shrink-0',
   {

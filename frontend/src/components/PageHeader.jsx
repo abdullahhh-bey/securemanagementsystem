@@ -11,13 +11,13 @@ export function PageHeader({ title, description, actions, back, meta, className 
         {back && (
           <Link
             to={back.to}
-            className="mb-2 inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted transition-colors hover:text-ink"
+            className="mb-2 inline-flex items-center gap-1.5 rounded-sm text-sm font-normal text-muted transition-colors hover:text-ink"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             {back.label}
           </Link>
         )}
-        <h1 className="text-balance text-2xl font-extrabold tracking-tight sm:text-[1.7rem]">{title}</h1>
+        <h1 className="text-balance text-2xl font-bold tracking-tight sm:text-[1.7rem]">{title}</h1>
         {description ? <p className="mt-1 max-w-2xl text-pretty text-sm text-muted">{description}</p> : null}
         {meta ? <div className="mt-2.5 flex flex-wrap items-center gap-2">{meta}</div> : null}
       </div>

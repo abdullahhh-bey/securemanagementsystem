@@ -131,7 +131,7 @@ export default function LoginPage() {
 
         <main id="main-content" className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">
           <div className="w-full max-w-md">
-            <h1 className="text-3xl font-extrabold">Sign in</h1>
+            <h1 className="text-3xl font-bold">Sign in</h1>
 
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-8 flex flex-col gap-4">
               {formError && (

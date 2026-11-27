@@ -163,7 +163,7 @@ export function QuestionFormDialog({ open, onOpenChange, question }) {
                     </Button>
                   </div>
                   {errors.options?.message && (
-                    <p className="text-sm font-medium text-danger" role="alert">
+                    <p className="text-sm font-normal text-danger" role="alert">
                       {errors.options.message}
                     </p>
                   )}

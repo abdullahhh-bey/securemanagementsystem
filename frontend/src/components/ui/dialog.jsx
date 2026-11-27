@@ -6,7 +6,7 @@ export const Dialog = DialogPrimitive.Root
 export const DialogTrigger = DialogPrimitive.Trigger
 export const DialogClose = DialogPrimitive.Close
 export const DialogTitle = ({ className, ...props }) => (
-  <DialogPrimitive.Title className={cn('font-heading text-lg font-bold tracking-tight', className)} {...props} />
+  <DialogPrimitive.Title className={cn('font-heading text-lg font-semibold tracking-tight', className)} {...props} />
 )
 export const DialogDescription = ({ className, ...props }) => (
   <DialogPrimitive.Description className={cn('text-sm text-muted', className)} {...props} />
