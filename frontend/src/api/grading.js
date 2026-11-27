@@ -1,5 +1,4 @@
-import { USE_MOCK, pick, request } from './client'
-import * as mock from './mock/grading'
+import { ApiError, pick, request } from './client'
 
 const EXAMS_BASE = '/api/examiner/exams'
 
@@ -55,8 +54,6 @@ async function fetchExamResults(examId) {
  * Backend statuses: PENDING_REVIEW | READY_TO_PUBLISH | PUBLISHED | …
  */
 export const getResultsReview = async (examId) => {
-  if (USE_MOCK) return mock.getResultsReview(examId)
-
   const results = await fetchExamResults(examId)
   const rows = results.map(adaptResultRow)
   const state = deriveReviewState(results)
@@ -123,8 +120,6 @@ function adaptGradingQueueItem(item) {
  * Blind written-answer queue (no candidate names).
  */
 export const getGradingQueue = async (examId) => {
-  if (USE_MOCK) return mock.getGradingQueue(examId)
-
   const response = await request(`${EXAMS_BASE}/${examId}/grading`)
   const items = pick(response, 'items')
   const progress = pick(response, 'progress') ?? {}
@@ -145,8 +140,6 @@ export const getGradingQueue = async (examId) => {
  * Body: { score, feedback } → updated queue item.
  */
 export const saveGrade = async (examId, attemptId, questionId, input) => {
-  if (USE_MOCK) return mock.saveGrade(examId, attemptId, questionId, input)
-
   const response = await request(
     `${EXAMS_BASE}/${examId}/attempts/${attemptId}/answers/${questionId}/grade`,
     { method: 'PUT', body: input },
@@ -160,8 +153,6 @@ export const saveGrade = async (examId, attemptId, questionId, input) => {
  * Publishes all READY_TO_PUBLISH results.
  */
 export const publishResults = async (examId) => {
-  if (USE_MOCK) return mock.publishResults(examId)
-
   const response = await request(`${EXAMS_BASE}/${examId}/results/publish`, { method: 'PATCH' })
   const data = pick(response, 'data')
   const publishedCount =
@@ -181,8 +172,6 @@ export const publishResults = async (examId) => {
  * Auto-scores choice questions only; written marks come from saveGrade and merge into Result totals.
  */
 export const evaluateExam = async (examId) => {
-  if (USE_MOCK) return mock.evaluateExam(examId)
-
   const response = await request(`${EXAMS_BASE}/${examId}/evaluate`, { method: 'PATCH' })
   const data = pick(response, 'data')
   const payload = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
@@ -196,5 +185,21 @@ export const evaluateExam = async (examId) => {
       totalMarks: toNumber(row.totalMarks) ?? row.totalMarks,
       resultId: row.resultId,
     })),
+  }
+}
+
+// GET /api/examiner/exams/:examId/analytics/questions
+export const getQuestionAnalytics = async (examId) => {
+  const response = await request(`${EXAMS_BASE}/${examId}/analytics/questions`)
+  const questions = pick(response, 'questions')
+  if (!Array.isArray(questions)) {
+    throw new ApiError({
+      code: 'BAD_RESPONSE',
+      message: 'The server returned invalid question analytics.',
+    })
+  }
+  return {
+    finalAttemptCount: Number(response.finalAttemptCount) || 0,
+    questions,
   }
 }

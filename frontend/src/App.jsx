@@ -16,15 +16,15 @@ const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'))
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage'))
 const AdminExamsPage = lazy(() => import('@/pages/admin/AdminExamsPage'))
-const ChangePasswordPage = lazy(() => import('@/pages/account/ChangePasswordPage'))
-const ExamWorkspacePage = lazy(() => import('@/pages/examiner/ExamWorkspacePage'))
 const CandidateExamPage = lazy(() => import('@/pages/candidate/CandidateExamPage'))
 const CandidateExamsPage = lazy(() => import('@/pages/candidate/CandidateExamsPage'))
 const CandidateDashboardPage = lazy(() => import('@/pages/candidate/CandidateDashboardPage'))
 const CandidateAttemptPage = lazy(() => import('@/pages/candidate/CandidateAttemptPage'))
 const CandidateResultsPage = lazy(() => import('@/pages/candidate/CandidateResultsPage'))
+const CandidateResultPage = lazy(() => import('@/pages/candidate/CandidateResultPage'))
 const CandidateDisputesPage = lazy(() => import('@/pages/candidate/CandidateDisputesPage'))
 const CandidateAnnouncementsPage = lazy(() => import('@/pages/candidate/CandidateAnnouncementsPage'))
+const CandidatePreferencesPage = lazy(() => import('@/pages/candidate/CandidatePreferencesPage'))
 const CandidateLayout = lazy(() => import('@/layouts/CandidateLayout'))
 const ExamShell = lazy(() => import('@/pages/examiner/ExamShell'))
 const ExamFormPage = lazy(() => import('@/pages/examiner/ExamFormPage'))
@@ -46,13 +46,6 @@ const ExamMonitorDisruptionsSection = lazy(() =>
 )
 const ExamGradingSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamGradingSection })))
 const ExamResultsScoresSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsScoresSection })))
-const ExamResultsAnalyticsSection = lazy(() =>
-  import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsAnalyticsSection })),
-)
-const ExamResultsFairnessSection = lazy(() =>
-  import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsFairnessSection })),
-)
-const ExamResultsReportSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsReportSection })))
 const ExamDisputesSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamDisputesSection })))
 
 const queryClient = new QueryClient({
@@ -94,7 +87,6 @@ export default function App() {
                         <Route path="students" element={<AdminUsersPage roleFilter={ROLES.CANDIDATE} />} />
                         <Route path="exams" element={<AdminExamsPage />} />
                         <Route path="audit" element={<AdminAuditPage />} />
-                        <Route path="account/password" element={<ChangePasswordPage />} />
                         <Route path="*" element={<Navigate to="/404" replace />} />
                       </Route>
                     </Route>
@@ -105,7 +97,6 @@ export default function App() {
                         <Route path="students" element={<ExaminerStudentsPage />} />
                         <Route path="exams" element={<ExamsListPage />} />
                         <Route path="exams/new" element={<ExamFormPage />} />
-                        <Route path="exams/:id/sandbox" element={<ExamWorkspacePage />} />
                         <Route path="exams/:id/edit" element={<ExamFormPage />} />
                         <Route path="exams/:id/review" element={<ExamReviewPage />} />
                         <Route path="exams/:id" element={<ExamShell />}>
@@ -117,12 +108,8 @@ export default function App() {
                           <Route path="monitor/disruptions" element={<ExamMonitorDisruptionsSection />} />
                           <Route path="grading" element={<ExamGradingSection />} />
                           <Route path="results" element={<ExamResultsScoresSection />} />
-                          <Route path="results/analytics" element={<ExamResultsAnalyticsSection />} />
-                          <Route path="results/fairness" element={<ExamResultsFairnessSection />} />
-                          <Route path="results/report" element={<ExamResultsReportSection />} />
                           <Route path="disputes" element={<ExamDisputesSection />} />
                         </Route>
-                        <Route path="account/password" element={<ChangePasswordPage />} />
                         <Route path="*" element={<Navigate to="/404" replace />} />
                       </Route>
                     </Route>
@@ -135,9 +122,10 @@ export default function App() {
                         <Route path="exams/:id/attempt/:attemptId" element={<CandidateAttemptPage />} />
                         <Route path="exams/:id/result" element={<Navigate to="/candidate/results" replace />} />
                         <Route path="results" element={<CandidateResultsPage />} />
+                        <Route path="results/:id" element={<CandidateResultPage />} />
                         <Route path="disputes" element={<CandidateDisputesPage />} />
                         <Route path="announcements" element={<CandidateAnnouncementsPage />} />
-                        <Route path="account/password" element={<ChangePasswordPage />} />
+                        <Route path="preferences" element={<CandidatePreferencesPage />} />
                         <Route path="*" element={<Navigate to="/404" replace />} />
                       </Route>
                     </Route>

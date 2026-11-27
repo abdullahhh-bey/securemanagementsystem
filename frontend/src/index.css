@@ -24,9 +24,19 @@
     background: var(--background);
     color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 0.9375rem;
+    line-height: var(--candidate-line-height, 1.55);
     -webkit-font-smoothing: antialiased;
+  }
+
+  html[data-candidate-text-size="large"] {
+    font-size: 112.5%;
+  }
+  html[data-candidate-text-size="extra-large"] {
+    font-size: 125%;
+  }
+  html[data-candidate-line-spacing="relaxed"] {
+    --candidate-line-height: 1.85;
   }
   h1,
   h2,
@@ -140,6 +150,27 @@
   }
 }
 
+@keyframes login-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes login-orbit-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-12px, 10px, 0) rotate(2deg);
+  }
+}
+
 @layer components {
   .page-enter {
     animation: page-enter 220ms ease-out both;
@@ -148,5 +179,22 @@
   .loader-logo {
     animation: loader-logo-motion 2.4s ease-in-out infinite;
     will-change: transform, opacity;
+  }
+
+  .login-content {
+    animation: login-content-in 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  }
+
+  .login-orbit {
+    animation: login-orbit-drift 12s ease-in-out infinite;
+  }
+
+  .login-feature-card {
+    box-shadow: 0 24px 70px color-mix(in srgb, var(--ink) 18%, transparent);
+  }
+
+  .login-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px color-mix(in srgb, var(--primary) 30%, transparent);
   }
 }

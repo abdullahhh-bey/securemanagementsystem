@@ -1,7 +1,5 @@
-import { ApiError, USE_MOCK, pick, request } from './client'
+import { ApiError, pick, request } from './client'
 import { formatDateTime } from '@/lib/format'
-import * as mock from './mock/candidate'
-import * as studentMock from './mock/student'
 
 function toNumber(value) {
   if (value == null || value === '') return undefined
@@ -39,7 +37,6 @@ function normalizeExam(exam) {
     settings: {
       shuffleQuestions: Boolean(randomizeQuestions),
       shuffleOptions: Boolean(randomizeOptions),
-      negativeMarking: Boolean(exam.settings?.negativeMarking ?? exam.negativeMarking ?? false),
     },
   }
 }
@@ -62,7 +59,7 @@ function pickExam(response) {
 
 /**
  * Backend returns the exam for any enrolled candidate (with accessStatus).
- * Detail entry in the UI still refuses UPCOMING/CLOSED the same way the mock does.
+ * The UI refuses UPCOMING/CLOSED exams before starting an attempt.
  */
 function assertCanEnter(exam) {
   if (exam.accessStatus === 'UPCOMING') {
@@ -90,17 +87,13 @@ function assertCanEnter(exam) {
 
 // GET /api/candidate/exams -> CandidateExam[]
 export const listCandidateExams = () =>
-  USE_MOCK
-    ? mock.listCandidateExams()
-    : request('/api/candidate/exams').then(pickExamList)
+  request('/api/candidate/exams').then(pickExamList)
 
 // GET /api/candidate/exams/:id -> CandidateExam   (403 with a message when access is refused)
 export const getCandidateExam = (id) =>
-  USE_MOCK
-    ? mock.getCandidateExam(id)
-    : request(`/api/candidate/exams/${id}`).then((r) => assertCanEnter(pickExam(r)))
+  request(`/api/candidate/exams/${id}`).then((r) => assertCanEnter(pickExam(r)))
 
-/** Backend returns a full ExamAttempt; Start Exam only needs id (+ status, matching mock). */
+/** Backend returns a full ExamAttempt; Start Exam only needs its id and status. */
 function pickAttempt(response) {
   const attempt = pick(response, 'attempt')
   if (!attempt || typeof attempt !== 'object' || Array.isArray(attempt) || !attempt.id) {
@@ -117,9 +110,7 @@ function pickAttempt(response) {
 
 // POST /api/candidate/exams/:examId/attempts -> { id, status }
 export const startCandidateAttempt = (examId) =>
-  USE_MOCK
-    ? studentMock.startCandidateAttempt(examId)
-    : request(`/api/candidate/exams/${examId}/attempts`, { method: 'POST' }).then(pickAttempt)
+  request(`/api/candidate/exams/${examId}/attempts`, { method: 'POST' }).then(pickAttempt)
 
 function normalizeWorkspaceOption(option) {
   if (!option || typeof option !== 'object') return null
@@ -192,9 +183,7 @@ function pickWorkspace(response) {
 
 // GET /api/candidate/attempts/:attemptId/workspace -> workspace DTO
 export const getCandidateAttemptWorkspace = (attemptId) =>
-  USE_MOCK
-    ? studentMock.getCandidateAttemptWorkspace(attemptId)
-    : request(`/api/candidate/attempts/${attemptId}/workspace`).then(pickWorkspace)
+  request(`/api/candidate/attempts/${attemptId}/workspace`).then(pickWorkspace)
 
 /** Body expected by PUT …/answer and by CandidateAttemptPage.persist. */
 function toSaveAnswerBody(answer = {}) {
@@ -205,7 +194,7 @@ function toSaveAnswerBody(answer = {}) {
   }
 }
 
-/** Unwrap `{ success, answer }` to the saved-answer DTO the mock returns. */
+/** Unwrap `{ success, answer }` to the saved-answer DTO used by the workspace. */
 function pickSavedAnswer(response) {
   const saved = pick(response, 'answer')
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) {
@@ -224,12 +213,10 @@ function pickSavedAnswer(response) {
 
 // PUT /api/candidate/attempts/:attemptId/questions/:attemptQuestionId/answer
 export const saveCandidateAnswer = (attemptId, attemptQuestionId, answer) =>
-  USE_MOCK
-    ? studentMock.saveCandidateAnswer(attemptId, attemptQuestionId, answer)
-    : request(`/api/candidate/attempts/${attemptId}/questions/${attemptQuestionId}/answer`, {
-        method: 'PUT',
-        body: toSaveAnswerBody(answer),
-      }).then(pickSavedAnswer)
+  request(`/api/candidate/attempts/${attemptId}/questions/${attemptQuestionId}/answer`, {
+    method: 'PUT',
+    body: toSaveAnswerBody(answer),
+  }).then(pickSavedAnswer)
 
 /** Unwrap `{ success, attempt, summary }` to the submit DTO AttemptPage expects. */
 function pickSubmitResult(response) {
@@ -264,9 +251,7 @@ function pickSubmitResult(response) {
 
 // POST /api/candidate/attempts/:attemptId/submit -> { attempt, summary }
 export const submitCandidateAttempt = (attemptId) =>
-  USE_MOCK
-    ? studentMock.submitCandidateAttempt(attemptId)
-    : request(`/api/candidate/attempts/${attemptId}/submit`, { method: 'POST' }).then(pickSubmitResult)
+  request(`/api/candidate/attempts/${attemptId}/submit`, { method: 'POST' }).then(pickSubmitResult)
 
 /** Map POST …/events response → monitor-compatible event DTO `{ id, type, occurredAt, metadata }`. */
 function pickAttemptEvent(response) {
@@ -287,12 +272,10 @@ function pickAttemptEvent(response) {
 
 // POST /api/candidate/attempts/:attemptId/events  { type, metadata? }
 export const reportAttemptEvent = (attemptId, { type, metadata } = {}) =>
-  USE_MOCK
-    ? studentMock.reportAttemptEvent(attemptId, { type, metadata })
-    : request(`/api/candidate/attempts/${attemptId}/events`, {
-        method: 'POST',
-        body: metadata === undefined ? { type } : { type, metadata },
-      }).then(pickAttemptEvent)
+  request(`/api/candidate/attempts/${attemptId}/events`, {
+    method: 'POST',
+    body: metadata === undefined ? { type } : { type, metadata },
+  }).then(pickAttemptEvent)
 
 function normalizeResultDispute(dispute) {
   if (!dispute || typeof dispute !== 'object') return null
@@ -345,9 +328,7 @@ function pickResultList(response) {
 
 // GET /api/candidate/results -> published CandidateResult[]
 export const listCandidateResults = () =>
-  USE_MOCK
-    ? studentMock.listCandidateResults()
-    : request('/api/candidate/results').then(pickResultList)
+  request('/api/candidate/results').then(pickResultList)
 
 function normalizeDisputeResult(result) {
   if (!result || typeof result !== 'object') return undefined
@@ -404,18 +385,14 @@ function pickDispute(response) {
 
 // GET /api/candidate/disputes -> CandidateDispute[]
 export const listCandidateDisputes = () =>
-  USE_MOCK
-    ? studentMock.listCandidateDisputes()
-    : request('/api/candidate/disputes').then(pickDisputeList)
+  request('/api/candidate/disputes').then(pickDisputeList)
 
 // POST /api/candidate/results/:resultId/disputes { explanation } -> CandidateDispute
 export const createCandidateDispute = (resultId, explanation) =>
-  USE_MOCK
-    ? studentMock.createCandidateDispute(resultId, { explanation })
-    : request(`/api/candidate/results/${resultId}/disputes`, {
-        method: 'POST',
-        body: { explanation: typeof explanation === 'string' ? explanation.trim() : '' },
-      }).then(pickDispute)
+  request(`/api/candidate/results/${resultId}/disputes`, {
+    method: 'POST',
+    body: { explanation: typeof explanation === 'string' ? explanation.trim() : '' },
+  }).then(pickDispute)
 
 function normalizeAnnouncement(announcement) {
   if (!announcement || typeof announcement !== 'object') return null
@@ -452,6 +429,61 @@ function pickAnnouncementList(response) {
 
 // GET /api/candidate/announcements -> CandidateAnnouncement[]
 export const listCandidateAnnouncements = () =>
-  USE_MOCK
-    ? studentMock.listCandidateAnnouncements()
-    : request('/api/candidate/announcements').then(pickAnnouncementList)
+  request('/api/candidate/announcements').then(pickAnnouncementList)
+
+export const DEFAULT_CANDIDATE_PREFERENCES = Object.freeze({
+  textSize: 'medium',
+  contrast: 'standard',
+  lineSpacing: 'standard',
+})
+
+function normalizeCandidatePreferences(response) {
+  const preferences = pick(response, 'preferences')
+  const valid = preferences && typeof preferences === 'object' && !Array.isArray(preferences)
+  const normalized = valid ? { ...DEFAULT_CANDIDATE_PREFERENCES, ...preferences } : null
+  const allowed = {
+    textSize: ['medium', 'large', 'extra-large'],
+    contrast: ['standard', 'high'],
+    lineSpacing: ['standard', 'relaxed'],
+  }
+  if (!normalized || Object.entries(allowed).some(([key, values]) => !values.includes(normalized[key]))) {
+    throw new ApiError({
+      code: 'BAD_RESPONSE',
+      message: 'The server returned invalid display preferences.',
+    })
+  }
+  return normalized
+}
+
+// GET /api/candidate/preferences
+export const getCandidatePreferences = () =>
+  request('/api/candidate/preferences').then(normalizeCandidatePreferences)
+
+// PATCH /api/candidate/preferences { textSize?, contrast?, lineSpacing? }
+export const updateCandidatePreferences = (patch) =>
+  request('/api/candidate/preferences', {
+    method: 'PATCH',
+    body: patch,
+  }).then(normalizeCandidatePreferences)
+
+function normalizeScratchpad(response) {
+  const scratchpad = pick(response, 'scratchpad')
+  if (!scratchpad || typeof scratchpad.content !== 'string') {
+    throw new ApiError({
+      code: 'BAD_RESPONSE',
+      message: 'The server returned an invalid scratchpad.',
+    })
+  }
+  return { content: scratchpad.content, updatedAt: scratchpad.updatedAt ?? null }
+}
+
+// GET /api/candidate/attempts/:attemptId/scratchpad
+export const getCandidateScratchpad = (attemptId) =>
+  request(`/api/candidate/attempts/${attemptId}/scratchpad`).then(normalizeScratchpad)
+
+// PUT /api/candidate/attempts/:attemptId/scratchpad { content }
+export const saveCandidateScratchpad = (attemptId, content) =>
+  request(`/api/candidate/attempts/${attemptId}/scratchpad`, {
+    method: 'PUT',
+    body: { content },
+  }).then(normalizeScratchpad)

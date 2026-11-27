@@ -15,14 +15,6 @@ export function useExamQuestions(examId) {
   })
 }
 
-export function useShufflePreview(examId, seed, { enabled = true } = {}) {
-  return useQuery({
-    queryKey: queryKeys.shufflePreview(examId, seed),
-    queryFn: () => questionsApi.getShufflePreview(examId, seed),
-    enabled: Boolean(examId) && enabled,
-  })
-}
-
 export function useCreateQuestion(options) {
   return useAppMutation(questionsApi.createQuestion, { invalidate: [queryKeys.questions], ...options })
 }

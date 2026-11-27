@@ -8,35 +8,10 @@ const requiredText = (label, max = 120) =>
     .min(1, `${label} is required.`)
     .max(max, `${label} must be ${max} characters or fewer.`)
 
-const passwordRules = z
-  .string()
-  .min(8, 'Use at least 8 characters.')
-  .regex(/[A-Za-z]/, 'Include at least one letter.')
-  .regex(/\d/, 'Include at least one number.')
-
 export const loginSchema = z.object({
   email: z.string().trim().min(1, 'Enter your email address.').pipe(z.email('Enter a valid email address.')),
   password: z.string().min(1, 'Enter your password.'),
 })
-
-export const forgotPasswordSchema = z.object({
-  email: z.string().trim().min(1, 'Enter your email address.').pipe(z.email('Enter a valid email address.')),
-})
-
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Enter your current password.'),
-    newPassword: passwordRules,
-    confirmPassword: z.string().min(1, 'Confirm your new password.'),
-  })
-  .superRefine((value, ctx) => {
-    if (value.newPassword !== value.confirmPassword) {
-      ctx.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'Passwords do not match.' })
-    }
-    if (value.currentPassword && value.newPassword === value.currentPassword) {
-      ctx.addIssue({ code: 'custom', path: ['newPassword'], message: 'Choose a different password.' })
-    }
-  })
 
 /** Admin create-user: EXAMINER/CANDIDATE only; password min 12 to match POST /api/admin/users. */
 export const createUserSchema = z.object({
@@ -71,12 +46,10 @@ export const examSchema = z
     startAt: z.string().min(1, 'Choose when the exam opens.'),
     endAt: z.string().min(1, 'Choose when the exam closes.'),
     durationMinutes: wholeNumber('Duration', { max: 600 }),
-    totalMarks: wholeNumber('Total marks', { max: 1000 }),
     maxAttempts: wholeNumber('Max attempts', { min: 1, max: 10 }).optional(),
     settings: z.object({
       shuffleQuestions: z.boolean(),
       shuffleOptions: z.boolean(),
-      negativeMarking: z.boolean(),
     }),
   })
   .superRefine((value, ctx) => {

@@ -5,6 +5,7 @@ import {
   getExamResults,
   publishExamResults,
 } from "../controllers/result.controller.js";
+import { getQuestionAnalytics } from "../controllers/question-analytics.controller.js";
 
 import {
   createExam,
@@ -104,6 +105,7 @@ router.put(
 );
 
 // Results management
+router.get("/:examId/analytics/questions", getQuestionAnalytics);
 router.get("/:examId/results", getExamResults);
 router.patch("/:examId/results/publish", publishExamResults);
 

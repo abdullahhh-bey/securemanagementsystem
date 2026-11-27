@@ -10,6 +10,8 @@ export const queryKeys = {
   candidateExams: ['candidate', 'exams'],
   candidateExam: (id) => ['candidate', 'exams', String(id)],
   candidateAttempt: (id) => ['candidate', 'attempts', String(id), 'workspace'],
+  candidateScratchpad: (id) => ['candidate', 'attempts', String(id), 'scratchpad'],
+  candidatePreferences: ['candidate', 'preferences'],
   candidateResults: ['candidate', 'results'],
   candidateDisputes: ['candidate', 'disputes'],
   candidateAnnouncements: ['candidate', 'announcements'],
@@ -17,7 +19,6 @@ export const queryKeys = {
   // Exam content. Kept under their own root ('x') so invalidating `exams` does not refetch them (and vice versa).
   questions: ['x', 'questions'],
   examQuestions: (id) => ['x', String(id), 'questions'],
-  shufflePreview: (id, seed) => ['x', String(id), 'shuffle', seed],
   monitor: (id) => ['x', String(id), 'monitor'],
   incidents: (id, attemptId) => ['x', String(id), 'incidents', attemptId],
   announcements: (id) => ['x', String(id), 'announcements'],
@@ -27,16 +28,9 @@ export const queryKeys = {
   resultsReview: (id) => ['x', String(id), 'results', 'review'],
   results: (id) => ['x', String(id), 'results'],
   questionAnalytics: (id) => ['x', String(id), 'analytics', 'questions'],
-  fairness: (id) => ['x', String(id), 'analytics', 'fairness'],
-  examReport: (id) => ['x', String(id), 'report'],
   disputes: (id) => ['x', String(id), 'disputes'],
-  disputeImpact: (id, disputeId, outcome) => ['x', String(id), 'disputes', disputeId, 'impact', outcome],
-  scoreHistory: (id, attemptId) => ['x', String(id), 'score-history', attemptId],
   /** Everything about one exam's content: use to refresh results, grading and analytics together. */
   examContent: (id) => ['x', String(id)],
-
-  candidateResult: (id) => ['candidate', 'exams', String(id), 'result'],
-  candidateReport: (id) => ['candidate', 'exams', String(id), 'report'],
 
   auditLog: (filters) => ['admin', 'audit', filters],
   adminExams: ['admin', 'exams'],

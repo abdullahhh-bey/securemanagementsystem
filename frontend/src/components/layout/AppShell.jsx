@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
  * Shared frame for role layouts. Supplies landmarks, mobile drawer,
  * equal content padding (via theme), and page-enter motion.
  */
-export function AppShell({ nav, areaLabel, theme, changePasswordTo }) {
+export function AppShell({ nav, areaLabel, theme }) {
   const { pathname } = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const mainRef = useRef(null)
@@ -35,7 +35,7 @@ export function AppShell({ nav, areaLabel, theme, changePasswordTo }) {
       <SkipLink />
       <div className={cn('grid min-h-dvh grid-cols-1', theme.gridCols)}>
         <aside className={cn('sticky top-0 hidden h-dvh overflow-y-auto lg:block', theme.sidebar)}>
-          <SidebarNav nav={nav} theme={theme} areaLabel={areaLabel} changePasswordTo={changePasswordTo} />
+          <SidebarNav nav={nav} theme={theme} areaLabel={areaLabel} />
         </aside>
 
         <div className="flex min-w-0 flex-col">
@@ -69,7 +69,6 @@ export function AppShell({ nav, areaLabel, theme, changePasswordTo }) {
               nav={nav}
               theme={theme}
               areaLabel={areaLabel}
-              changePasswordTo={changePasswordTo}
               onNavigate={() => {
                 navigated.current = true
                 setDrawerOpen(false)

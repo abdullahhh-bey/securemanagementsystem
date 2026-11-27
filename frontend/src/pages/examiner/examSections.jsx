@@ -45,18 +45,6 @@ export function ExamResultsScoresSection() {
   return <ResultsTab exam={useExamContext()} view="scores" />
 }
 
-export function ExamResultsAnalyticsSection() {
-  return <ResultsTab exam={useExamContext()} view="analytics" />
-}
-
-export function ExamResultsFairnessSection() {
-  return <ResultsTab exam={useExamContext()} view="fairness" />
-}
-
-export function ExamResultsReportSection() {
-  return <ResultsTab exam={useExamContext()} view="report" />
-}
-
 export function ExamDisputesSection() {
   return <DisputesTab exam={useExamContext()} />
 }

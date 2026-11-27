@@ -4,7 +4,6 @@ import {
   Activity,
   BarChart3,
   ClipboardCheck,
-  Eye,
   FileText,
   Gavel,
   HelpCircle,
@@ -92,11 +91,6 @@ export default function ExamShell() {
         }
         actions={
           <>
-            <Button asChild variant="secondary" size="sm">
-              <Link to={`${base}/sandbox`}>
-                <Eye /> Preview
-              </Link>
-            </Button>
             {isDraft ? (
               <>
                 <Button asChild variant="secondary" size="sm">

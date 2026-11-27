@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useRef } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as candidateApi from '@/api/candidate'
 import { AttemptEventType } from '@/lib/schema'
 import { queryKeys } from '@/lib/queryKeys'
@@ -18,12 +18,46 @@ export function useCandidateAnnouncements() {
   return useQuery({ queryKey: queryKeys.candidateAnnouncements, queryFn: candidateApi.listCandidateAnnouncements })
 }
 
+export function useCandidatePreferences() {
+  return useQuery({
+    queryKey: queryKeys.candidatePreferences,
+    queryFn: candidateApi.getCandidatePreferences,
+  })
+}
+
+export function useSaveCandidatePreferences(options) {
+  return useAppMutation(candidateApi.updateCandidatePreferences, {
+    invalidate: [queryKeys.candidatePreferences],
+    successMessage: 'Display preferences saved',
+    ...options,
+  })
+}
+
 export function useCandidateAttemptWorkspace(attemptId) {
   return useQuery({
     queryKey: queryKeys.candidateAttempt(attemptId),
     queryFn: () => candidateApi.getCandidateAttemptWorkspace(attemptId),
     enabled: Boolean(attemptId),
     retry: false,
+  })
+}
+
+export function useCandidateScratchpad(attemptId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: queryKeys.candidateScratchpad(attemptId),
+    queryFn: () => candidateApi.getCandidateScratchpad(attemptId),
+    enabled: Boolean(attemptId) && enabled,
+    retry: false,
+  })
+}
+
+export function useSaveCandidateScratchpad(attemptId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (content) => candidateApi.saveCandidateScratchpad(attemptId, content),
+    onSuccess: (scratchpad) => {
+      queryClient.setQueryData(queryKeys.candidateScratchpad(attemptId), scratchpad)
+    },
   })
 }
 
@@ -38,7 +72,9 @@ export function useSaveCandidateAnswer(attemptId, { reportEvent } = {}) {
   const toast = useToast()
   const pendingByQuestion = useRef(new Map())
   const reportEventRef = useRef(reportEvent)
-  reportEventRef.current = reportEvent
+  useEffect(() => {
+    reportEventRef.current = reportEvent
+  }, [reportEvent])
   const mutation = useMutation({
     mutationFn: ({ attemptQuestionId, answer }) =>
       candidateApi.saveCandidateAnswer(attemptId, attemptQuestionId, answer),

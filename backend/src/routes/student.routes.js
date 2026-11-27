@@ -20,6 +20,12 @@ import {
 } from "../controllers/candidate.controller.js";
 
 import { reportAttemptEvent } from "../controllers/candidate-event.controller.js";
+import {
+  getCandidatePreferences,
+  updateCandidatePreferences,
+  getAttemptScratchpad,
+  saveAttemptScratchpad,
+} from "../controllers/candidate-workspace.controller.js";
 
 const router = express.Router();
 
@@ -36,8 +42,12 @@ router.put(
   "/attempts/:attemptId/questions/:attemptQuestionId/answer",
   saveCandidateAnswer
 );
+router.get("/attempts/:attemptId/scratchpad", getAttemptScratchpad);
+router.put("/attempts/:attemptId/scratchpad", saveAttemptScratchpad);
 router.post("/attempts/:attemptId/submit", submitCandidateAttempt);
 router.post("/attempts/:attemptId/events", reportAttemptEvent);
+router.get("/preferences", getCandidatePreferences);
+router.patch("/preferences", updateCandidatePreferences);
 
 // Published results
 router.get("/results", getCandidateResults);

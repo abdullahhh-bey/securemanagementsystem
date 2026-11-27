@@ -1,4 +1,4 @@
-import { AlertTriangle, Lock, Save, Shuffle, Trash2 } from 'lucide-react'
+import { AlertTriangle, Lock, Save, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,8 +22,6 @@ export function AssignedQuestions({
   onRetry,
   isRetrying,
   isLoading,
-  onPreviewShuffle,
-  shuffleDisabledReason,
 }) {
   const paperMarks = computePaperMarks(items)
   const targetMarks = exam.totalMarks
@@ -69,9 +67,6 @@ export function AssignedQuestions({
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" onClick={onPreviewShuffle} disabledReason={shuffleDisabledReason}>
-            <Shuffle /> Shuffle preview
-          </Button>
           <Button
             size="sm"
             onClick={onSave}

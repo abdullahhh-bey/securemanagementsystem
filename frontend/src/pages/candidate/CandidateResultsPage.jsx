@@ -74,11 +74,16 @@ export default function CandidateResultsPage() {
                       </p>
                       <p className="text-xs text-muted">{percent === null ? 'Score unavailable' : `${percent}%`}</p>
                     </div>
-                    {!hasDispute && (
+                    <div className="flex gap-2">
                       <Button asChild variant="secondary" size="sm">
-                        <Link to={`/candidate/disputes?resultId=${encodeURIComponent(result.id)}`}>Raise dispute</Link>
+                        <Link to={`/candidate/results/${encodeURIComponent(result.id)}`}>View result</Link>
                       </Button>
-                    )}
+                      {!hasDispute && (
+                        <Button asChild variant="secondary" size="sm">
+                          <Link to={`/candidate/disputes?resultId=${encodeURIComponent(result.id)}`}>Raise dispute</Link>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

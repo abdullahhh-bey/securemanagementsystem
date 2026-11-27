@@ -2,13 +2,11 @@ import { Check, Minus } from 'lucide-react'
 import { SETTING_DEFS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
-/** Read-only settings; candidate view intentionally exposes only negative marking status. */
-export function ExamSettings({ settings, studentView = false }) {
-  const visibleSettings = studentView ? SETTING_DEFS.filter(({ key }) => key === 'negativeMarking') : SETTING_DEFS
-
+/** Read-only settings backed by persisted exam fields. */
+export function ExamSettings({ settings }) {
   return (
     <ul className="divide-y divide-border rounded-lg border border-border">
-      {visibleSettings.map(({ key, label, description }) => {
+      {SETTING_DEFS.map(({ key, label, description }) => {
         const on = Boolean(settings?.[key])
         return (
           <li key={key} className="flex items-start gap-3 p-3">

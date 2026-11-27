@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
-const LOGO_DEFAULT = '/brand/comsats-logo.svg'
-const LOGO_ON_DARK = '/brand/comsats-logo-white.svg'
-const ALT = 'COMSATS University Lahore'
+const LOGO_DEFAULT = '/brand/fs-logo.svg'
+const LOGO_ON_DARK = '/brand/fs-logo-white.svg'
+const ALT = 'FS University Lahore'
 
 // Height drives the size; width follows from the artwork's own aspect ratio.
 const SIZE_CLASS = {
@@ -19,7 +19,7 @@ const FALLBACK_TEXT_CLASS = {
 }
 
 /**
- * The COMSATS University Lahore logo.
+ * The FS University Lahore logo.
  *
  * - `variant="onDark"` uses the white artwork and falls back to the default
  *   artwork if it is missing.

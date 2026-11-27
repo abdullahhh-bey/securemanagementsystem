@@ -18,5 +18,5 @@ const NAV = [
 ]
 
 export default function AdminLayout() {
-  return <AppShell nav={NAV} areaLabel="Admin" theme={NAVY_THEME} changePasswordTo="/admin/account/password" />
+  return <AppShell nav={NAV} areaLabel="Admin" theme={NAVY_THEME} />
 }

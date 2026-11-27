@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, KeyRound, LogOut } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 import { Button } from '@/components/ui/button'
 import { RoleChip } from '@/components/StatusBadge'
@@ -75,7 +75,7 @@ function NavItem({ item, theme, onNavigate }) {
   )
 }
 
-function SidebarAccount({ theme, changePasswordTo }) {
+function SidebarAccount({ theme }) {
   const { user, logout } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -115,17 +115,6 @@ function SidebarAccount({ theme, changePasswordTo }) {
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        {changePasswordTo && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn('w-full justify-start', theme.navIdle)}
-            onClick={() => navigate(changePasswordTo)}
-          >
-            <KeyRound />
-            Change password
-          </Button>
-        )}
         <Button
           variant="ghost"
           size="sm"
@@ -143,7 +132,7 @@ function SidebarAccount({ theme, changePasswordTo }) {
 }
 
 /** Brand + navigation + account controls. */
-export function SidebarNav({ nav, theme, areaLabel, onNavigate, changePasswordTo }) {
+export function SidebarNav({ nav, theme, areaLabel, onNavigate }) {
   return (
     <div className={cn('flex h-full flex-col', theme.sidebarPadding)}>
       <div className={cn('px-1', onNavigate && 'pr-10')}>
@@ -157,7 +146,7 @@ export function SidebarNav({ nav, theme, areaLabel, onNavigate, changePasswordTo
         ))}
       </nav>
 
-      <SidebarAccount theme={theme} changePasswordTo={changePasswordTo} />
+      <SidebarAccount theme={theme} />
     </div>
   )
 }

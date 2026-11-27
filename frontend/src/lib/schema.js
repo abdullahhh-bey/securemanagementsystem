@@ -108,13 +108,6 @@ const QUESTION_TYPE_FROM_LEGACY = Object.freeze({
   MULTIPLE_SELECT: QuestionType.MULTIPLE_SELECT,
 })
 
-/** Schema → legacy keys still used inside mock scoring */
-export const QUESTION_TYPE_TO_LEGACY = Object.freeze({
-  SINGLE_CHOICE: 'MCQ_SINGLE',
-  MULTIPLE_SELECT: 'MCQ_MULTI',
-  WRITTEN: 'WRITTEN',
-})
-
 const DIFFICULTY_FROM_LEGACY = Object.freeze({
   easy: QuestionDifficulty.EASY,
   medium: QuestionDifficulty.MEDIUM,
@@ -168,7 +161,7 @@ export function examWindow(exam) {
   }
 }
 
-/** Normalize a User DTO from API/mock to schema-shaped public user. */
+/** Normalize a User DTO from the API to the public schema. */
 export function normalizeUser(user) {
   if (!user) return null
   const fullName = user.fullName || user.name || ''
@@ -199,12 +192,11 @@ export function normalizeExam(exam) {
     settings: {
       shuffleQuestions: randomizeQuestions,
       shuffleOptions: randomizeOptions,
-      negativeMarking: exam.settings?.negativeMarking ?? false,
     },
   }
 }
 
-/** Form / UI exam → API body aligned with prisma Exam (+ optional UI extensions). */
+/** Form / UI exam → API body aligned with the backend Exam model. */
 export function mapExamToApi(input) {
   const startsAt = input.startsAt ?? input.startAt
   const endsAt = input.endsAt ?? input.endAt
@@ -220,9 +212,6 @@ export function mapExamToApi(input) {
     maxAttempts: input.maxAttempts ?? 1,
     randomizeQuestions,
     randomizeOptions,
-    // UI extension retained for mock auto-marking until backend models it
-    negativeMarking: input.settings?.negativeMarking ?? input.negativeMarking ?? false,
-    totalMarks: input.totalMarks,
   }
 }
 

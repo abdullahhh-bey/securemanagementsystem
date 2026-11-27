@@ -1,7 +1,6 @@
-import { ApiError, USE_MOCK, pick, request } from './client'
+import { ApiError, pick, request } from './client'
 import { getExam } from './exams'
 import { mapQuestionToApi, normalizeQuestion } from '@/lib/schema'
-import * as mock from './mock/questions'
 
 /**
  * Aligns with prisma Question + QuestionVersion.
@@ -12,9 +11,6 @@ import * as mock from './mock/questions'
 
 const QUESTIONS_BASE = '/api/examiner/questions'
 const EXAMS_BASE = '/api/examiner/exams'
-
-const one = async (promise) => normalizeQuestion(await promise)
-const many = async (promise) => (await promise).map(normalizeQuestion)
 
 /** Flatten Question + latest QuestionVersion (+ category) into the bank UI DTO. */
 function adaptQuestion(raw) {
@@ -95,14 +91,11 @@ function toQuestionWriteBody(input) {
 
 // GET /api/examiner/questions -> Question[]
 export const listQuestions = () =>
-  USE_MOCK ? many(mock.listQuestions()) : request(QUESTIONS_BASE).then(pickQuestionList)
+  request(QUESTIONS_BASE).then(pickQuestionList)
 
 // POST /api/examiner/questions -> Question
 export const createQuestion = (input) => {
-  const mapped = mapQuestionToApi(input)
-  return USE_MOCK
-    ? one(mock.createQuestion(mapped))
-    : request(QUESTIONS_BASE, { method: 'POST', body: toQuestionWriteBody(input) }).then(pickQuestion)
+  return request(QUESTIONS_BASE, { method: 'POST', body: toQuestionWriteBody(input) }).then(pickQuestion)
 }
 
 /**
@@ -131,8 +124,6 @@ function resolveQuestionInput(input) {
  */
 export const updateQuestion = async (id, input) => {
   const payload = resolveQuestionInput(input)
-  const mapped = mapQuestionToApi(payload)
-  if (USE_MOCK) return one(mock.updateQuestion(id, mapped))
 
   await request(`${QUESTIONS_BASE}/${id}/versions`, {
     method: 'POST',
@@ -143,20 +134,28 @@ export const updateQuestion = async (id, input) => {
 
 // DELETE /api/examiner/questions/:questionId
 // Hard-deletes when unused; soft-deactivates (isActive=false) when assigned or used in attempts.
-// Mock still returns null; real mode normalizes to null for the existing hook/UI convention.
 export const deleteQuestion = async (id) => {
-  if (USE_MOCK) return mock.deleteQuestion(id)
-
   await request(`${QUESTIONS_BASE}/${id}`, { method: 'DELETE' })
   return null
 }
 
 // POST /api/questions/import  { questions: QuestionInput[] } -> { created }
-export const importQuestions = (rows) => {
-  const questions = rows.map(mapQuestionToApi)
-  return USE_MOCK
-    ? mock.importQuestions(questions)
-    : request('/api/questions/import', { method: 'POST', body: { questions } })
+export const importQuestions = async (rows) => {
+  let created = 0
+  for (const question of rows) {
+    try {
+      await createQuestion(question)
+      created += 1
+    } catch (error) {
+      if (created === 0) throw error
+      throw new ApiError({
+        code: 'PARTIAL_IMPORT',
+        message: `Imported ${created} of ${rows.length} questions before the next row failed: ${error.message}`,
+        status: error.status,
+      })
+    }
+  }
+  return { created }
 }
 
 /** Map ExamQuestion + questionVersion (from getExam) to the AssignedQuestions draft item. */
@@ -210,16 +209,6 @@ function toExamQuestionsDto(exam) {
 
 // Assigned list: no GET …/questions — use GET /api/examiner/exams/:examId (includes questions).
 export const listExamQuestions = async (examId) => {
-  if (USE_MOCK) {
-    const data = await mock.listExamQuestions(examId)
-    return {
-      ...data,
-      items: (data.items ?? []).map((item) => ({
-        ...item,
-        question: normalizeQuestion(item.question),
-      })),
-    }
-  }
   const exam = await getExam(examId)
   return toExamQuestionsDto(exam)
 }
@@ -243,8 +232,6 @@ async function removeExamQuestionAssignment(examId, examQuestionId) {
  * deleting current assignments then assigning each draft item in order.
  */
 export const setExamQuestions = async (examId, items) => {
-  if (USE_MOCK) return mock.setExamQuestions(examId, items)
-
   const current = await listExamQuestions(examId)
   for (const item of current.items) {
     if (item.examQuestionId) {
@@ -272,6 +259,3 @@ export const setExamQuestions = async (examId, items) => {
   return listExamQuestions(examId)
 }
 
-// GET /api/exams/:id/shuffle-preview?seed=
-export const getShufflePreview = (examId, seed) =>
-  USE_MOCK ? mock.getShufflePreview(examId, seed) : request(`/api/exams/${examId}/shuffle-preview`, { params: { seed } })

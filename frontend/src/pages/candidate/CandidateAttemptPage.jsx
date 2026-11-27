@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, CircleAlert, Clock3, Flag, Send } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Clock3, Flag, PencilLine, Send } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
@@ -11,11 +11,21 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAttemptEventReporting } from '@/hooks/useAttemptEventReporting'
-import { useCandidateAttemptWorkspace, useSaveCandidateAnswer, useSubmitCandidateAttempt } from '@/hooks/useStudentPortal'
+import {
+  useCandidateAttemptWorkspace,
+  useCandidateScratchpad,
+  useSaveCandidateAnswer,
+  useSaveCandidateScratchpad,
+  useSubmitCandidateAttempt,
+} from '@/hooks/useStudentPortal'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useCountdown } from '@/hooks/useServerClock'
 import { formatCountdown } from '@/lib/format'
 import { cn } from '@/lib/utils'
+
+const EMPTY_QUESTIONS = []
+const EMPTY_ANSWER = Object.freeze({ selectedOptionIds: [], textResponse: '', isMarkedForReview: false })
+const EMPTY_ANSWER_CHANGES = Object.freeze({})
 
 function ExamTimer({ expiresAt }) {
   const { msLeft } = useCountdown(expiresAt)
@@ -92,17 +102,140 @@ function AnswerEditor({ question, value, disabled, onChange, onSave }) {
   return <QuestionOptions question={question} value={value} disabled={disabled} onChange={onChange} />
 }
 
+function AttemptScratchpad({ attemptId, disabled }) {
+  const scratchpadQuery = useCandidateScratchpad(attemptId)
+  const saveScratchpad = useSaveCandidateScratchpad(attemptId)
+  const [content, setContent] = useState('')
+  const initializedAttempt = useRef(null)
+  const lastSavedContent = useRef('')
+  const attemptedContent = useRef(null)
+  const skipNextSave = useRef(false)
+  const debouncedContent = useDebouncedValue(content, 700)
+
+  useEffect(() => {
+    if (!scratchpadQuery.isSuccess || initializedAttempt.current === attemptId) return
+    initializedAttempt.current = attemptId
+    skipNextSave.current = true
+    lastSavedContent.current = scratchpadQuery.data.content
+    setContent(scratchpadQuery.data.content)
+  }, [attemptId, scratchpadQuery.data, scratchpadQuery.isSuccess])
+
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false
+      return
+    }
+    if (
+      initializedAttempt.current !== attemptId ||
+      disabled ||
+      saveScratchpad.isPending ||
+      debouncedContent !== content ||
+      debouncedContent === lastSavedContent.current ||
+      debouncedContent === attemptedContent.current
+    ) return
+
+    attemptedContent.current = debouncedContent
+    saveScratchpad.mutate(debouncedContent, {
+      onSuccess: () => {
+        lastSavedContent.current = debouncedContent
+      },
+    })
+  }, [attemptId, content, debouncedContent, disabled, saveScratchpad])
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <PencilLine className="size-4" aria-hidden="true" />
+          Digital scratchpad
+        </CardTitle>
+        <p className="text-xs text-muted">Private notes for this attempt only. They are not submitted or graded.</p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {scratchpadQuery.isPending ? (
+          <Skeleton className="h-28 w-full" />
+        ) : scratchpadQuery.error ? (
+          <div className="space-y-2">
+            <p role="alert" className="rounded-md bg-danger-soft p-3 text-sm text-danger">
+              {scratchpadQuery.error.message}
+            </p>
+            <Button variant="secondary" size="sm" onClick={() => scratchpadQuery.refetch()}>
+              Retry loading notes
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Label htmlFor="attempt-scratchpad" className="sr-only">Private exam notes</Label>
+            <Textarea
+              id="attempt-scratchpad"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              rows={7}
+              maxLength={20000}
+              disabled={disabled}
+              placeholder="Use this space for private working notes…"
+              aria-describedby="scratchpad-status"
+            />
+            <div className="flex items-center justify-between gap-2">
+              <p id="scratchpad-status" role={saveScratchpad.error ? 'alert' : 'status'} className="text-xs text-muted">
+                {saveScratchpad.error
+                  ? `Notes could not be saved: ${saveScratchpad.error.message}`
+                  : saveScratchpad.isPending
+                    ? 'Saving notes…'
+                    : 'Notes save automatically and remain private.'}
+              </p>
+              {saveScratchpad.error && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={disabled || saveScratchpad.isPending}
+                  onClick={() => {
+                    attemptedContent.current = content
+                    saveScratchpad.mutate(content, {
+                      onSuccess: () => {
+                        lastSavedContent.current = content
+                      },
+                    })
+                  }}
+                >
+                  Retry save
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function CandidateAttemptPage() {
   const { attemptId } = useParams()
   const workspaceQuery = useCandidateAttemptWorkspace(attemptId)
-  const [answers, setAnswers] = useState({})
+  const [answerChangesByAttempt, setAnswerChangesByAttempt] = useState({})
   const [activeIndex, setActiveIndex] = useState(0)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [submitted, setSubmitted] = useState(null)
   const [saveFailure, setSaveFailure] = useState('')
   const automaticSubmitStarted = useRef(false)
   const workspace = workspaceQuery.data
-  const questions = workspace?.questions ?? []
+  const questions = workspace?.questions ?? EMPTY_QUESTIONS
+  const answerChanges = answerChangesByAttempt[attemptId] ?? EMPTY_ANSWER_CHANGES
+  const answers = useMemo(
+    () =>
+      Object.fromEntries(
+        questions.map((question) => [
+          question.id,
+          {
+            selectedOptionIds: question.answer?.selectedOptionIds ?? [],
+            textResponse: question.answer?.textResponse ?? '',
+            isMarkedForReview: question.answer?.isMarkedForReview ?? false,
+            ...answerChanges[question.id],
+          },
+        ]),
+      ),
+    [answerChanges, questions],
+  )
   const activeQuestion = questions[activeIndex]
   const reportingEnabled = Boolean(workspace && workspace.status === 'IN_PROGRESS' && !submitted)
   const reportEvent = useAttemptEventReporting(attemptId, { enabled: reportingEnabled })
@@ -120,22 +253,6 @@ export default function CandidateAttemptPage() {
   const { msLeft } = useCountdown(workspace?.expiresAt)
   const debouncedAnswers = useDebouncedValue(answers, 500)
 
-  useEffect(() => {
-    if (!workspace) return
-    setAnswers(
-      Object.fromEntries(
-        workspace.questions.map((question) => [
-          question.id,
-          {
-            selectedOptionIds: question.answer?.selectedOptionIds ?? [],
-            textResponse: question.answer?.textResponse ?? '',
-            isMarkedForReview: question.answer?.isMarkedForReview ?? false,
-          },
-        ]),
-      ),
-    )
-  }, [workspace])
-
   const answeredCount = useMemo(
     () =>
       questions.filter((question) => {
@@ -147,7 +264,6 @@ export default function CandidateAttemptPage() {
 
   const persist = useCallback(
     (question, answer) => {
-      setSaveFailure('')
       saveAnswer({
         attemptQuestionId: question.id,
         answer: {
@@ -173,7 +289,7 @@ export default function CandidateAttemptPage() {
     setSaveFailure('')
     try {
       for (const question of questions) {
-        const answer = answers[question.id] ?? { selectedOptionIds: [], textResponse: '', isMarkedForReview: false }
+        const answer = answers[question.id] ?? EMPTY_ANSWER
         await saveAnswerAsync({
           attemptQuestionId: question.id,
           answer: {
@@ -203,7 +319,11 @@ export default function CandidateAttemptPage() {
   }, [attemptId, isSubmitPending, msLeft, submitAttempt, submitted, workspace?.status])
 
   const updateAnswer = (question, answer) => {
-    setAnswers((current) => ({ ...current, [question.id]: answer }))
+    setSaveFailure('')
+    setAnswerChangesByAttempt((current) => ({
+      ...current,
+      [attemptId]: { ...(current[attemptId] ?? {}), [question.id]: answer },
+    }))
     if (question.question.type !== 'WRITTEN') persist(question, answer)
   }
 
@@ -261,9 +381,13 @@ export default function CandidateAttemptPage() {
   }
 
   const setReviewFlag = () => {
-    const current = answers[activeQuestion.id] ?? { selectedOptionIds: [], textResponse: '', isMarkedForReview: false }
+    const current = answers[activeQuestion.id] ?? EMPTY_ANSWER
     const next = { ...current, isMarkedForReview: !current.isMarkedForReview }
-    setAnswers((state) => ({ ...state, [activeQuestion.id]: next }))
+    setSaveFailure('')
+    setAnswerChangesByAttempt((state) => ({
+      ...state,
+      [attemptId]: { ...(state[attemptId] ?? {}), [activeQuestion.id]: next },
+    }))
     persist(activeQuestion, next)
   }
 
@@ -302,10 +426,10 @@ export default function CandidateAttemptPage() {
               <CardContent className="space-y-6">
                 <AnswerEditor
                   question={activeQuestion}
-                  value={answers[activeQuestion.id] ?? { selectedOptionIds: [], textResponse: '', isMarkedForReview: false }}
+                  value={answers[activeQuestion.id] ?? EMPTY_ANSWER}
                   disabled={submit.isPending || msLeft === 0}
                   onChange={(answer) => updateAnswer(activeQuestion, answer)}
-                  onSave={() => persist(activeQuestion, answers[activeQuestion.id] ?? { selectedOptionIds: [], textResponse: '', isMarkedForReview: false })}
+                  onSave={() => persist(activeQuestion, answers[activeQuestion.id] ?? EMPTY_ANSWER)}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                   <Button
@@ -375,6 +499,9 @@ export default function CandidateAttemptPage() {
             </div>
           </CardContent>
         </Card>
+        <div className="xl:col-start-2">
+          <AttemptScratchpad attemptId={attemptId} disabled={submit.isPending || msLeft === 0} />
+        </div>
       </div>
 
       <ConfirmDialog

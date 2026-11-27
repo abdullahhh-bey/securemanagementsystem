@@ -83,7 +83,6 @@ export const CHECK_STATUS_META = {
 export const SETTING_DEFS = [
   { key: 'shuffleQuestions', label: 'Randomize questions' },
   { key: 'shuffleOptions', label: 'Randomize options' },
-  { key: 'negativeMarking', label: 'Negative marking' },
 ]
 
 export const LIFECYCLE_STEPS = ['DRAFT', 'PUBLISHED', 'ONGOING', 'COMPLETED']
@@ -104,7 +103,7 @@ export const DIFFICULTY_OPTIONS = [
   { value: 'HARD', label: 'Hard' },
 ]
 
-/** Schema QuestionType (+ legacy aliases for existing mock data). */
+/** Schema QuestionType, including legacy aliases used by existing question records. */
 export const QUESTION_TYPE_META = {
   SINGLE_CHOICE: { label: 'Multiple Choices', short: 'Choices' },
   MULTIPLE_SELECT: { label: 'Multiple Choices', short: 'Choices' },
@@ -144,7 +143,7 @@ export const INCIDENT_META = {
   TAB_HIDDEN: { label: 'Left the exam tab', icon: EyeOff },
   WINDOW_BLURRED: { label: 'Window lost focus', icon: Maximize },
   ATTEMPT_RESUMED: { label: 'Attempt resumed', icon: MonitorOff },
-  // Legacy mock aliases
+  // Legacy event aliases
   FULLSCREEN_EXIT: { label: 'Window lost focus', icon: Maximize },
   PASTE_DETECTED: { label: 'Answer save failed', icon: ClipboardPaste },
   CONNECTION_LOST: { label: 'Network disconnected', icon: WifiOff },

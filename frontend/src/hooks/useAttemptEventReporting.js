@@ -8,8 +8,11 @@ import { AttemptEventType, normalizeAttemptEventType } from '@/lib/schema'
  */
 export function useAttemptEventReporting(attemptId, { enabled = true } = {}) {
   const lastByType = useRef(new Map())
-  const enabledRef = useRef(enabled)
-  enabledRef.current = enabled && Boolean(attemptId)
+  const enabledRef = useRef(false)
+
+  useEffect(() => {
+    enabledRef.current = enabled && Boolean(attemptId)
+  }, [attemptId, enabled])
 
   const report = useCallback(
     (rawType, metadata) => {

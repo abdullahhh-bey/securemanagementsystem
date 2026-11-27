@@ -1,21 +1,16 @@
 import { useState } from 'react'
-import { Copy, FileUp, KeyRound, Pencil, UserPlus, Users } from 'lucide-react'
+import { Pencil, UserPlus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
-import { ImportDialog } from '@/components/import/ImportDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { RoleChip, StatusBadge } from '@/components/StatusBadge'
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/useAuth'
-import { useImportUsers, useResetPassword } from '@/hooks/useAdmin'
 import { useUpdateUser, useUsers } from '@/hooks/useUsers'
-import { useToast } from '@/hooks/useToast'
 import { ROLES } from '@/lib/constants'
-import { formatDate, formatDateTime } from '@/lib/format'
-import { parseUserRecord } from '@/lib/importSchemas'
+import { formatDate } from '@/lib/format'
 import { userDisplayName } from '@/lib/schema'
 import { initials } from '@/lib/utils'
 import { CreateUserDialog } from './CreateUserDialog'
@@ -38,7 +33,6 @@ const PAGE = {
     caption: 'Teacher accounts',
     empty: 'No teachers yet',
     createLabel: 'Create teacher',
-    importTitle: 'Import teachers',
     defaultRole: ROLES.EXAMINER,
     allowedRoles: [ROLES.EXAMINER, ROLES.ADMIN],
   },
@@ -47,7 +41,6 @@ const PAGE = {
     caption: 'Student accounts',
     empty: 'No students yet',
     createLabel: 'Create student',
-    importTitle: 'Import students',
     defaultRole: ROLES.CANDIDATE,
     allowedRoles: [ROLES.CANDIDATE],
   },
@@ -59,15 +52,10 @@ const PAGE = {
 export default function AdminUsersPage({ roleFilter }) {
   const config = PAGE[roleFilter] ?? PAGE[ROLES.CANDIDATE]
   const { user: me } = useAuth()
-  const toast = useToast()
-
   const { data: users, isPending, error, refetch, isRefetching } = useUsers()
   const [createOpen, setCreateOpen] = useState(false)
-  const [importOpen, setImportOpen] = useState(false)
   const [roleTarget, setRoleTarget] = useState(null)
   const [toggleTarget, setToggleTarget] = useState(null)
-  const [resetTarget, setResetTarget] = useState(null)
-  const [resetResult, setResetResult] = useState(null)
 
   const filtered = (users ?? []).filter((u) =>
     roleFilter === ROLES.EXAMINER ? u.role === ROLES.EXAMINER || u.role === ROLES.ADMIN : u.role === ROLES.CANDIDATE,
@@ -76,29 +64,6 @@ export default function AdminUsersPage({ roleFilter }) {
   const updateUser = useUpdateUser({
     successMessage: (updated) => `${userDisplayName(updated)} is now ${updated.isActive ? 'active' : 'inactive'}`,
   })
-
-  const importUsers = useImportUsers({
-    onSuccess: () => setImportOpen(false),
-  })
-
-  const resetPassword = useResetPassword({
-    successMessage: null,
-    onSuccess: (data) => {
-      const name = userDisplayName(resetTarget) || 'User'
-      setResetTarget(null)
-      setResetResult({ ...data, userName: name })
-    },
-  })
-
-  const copyPassword = async () => {
-    if (!resetResult?.temporaryPassword) return
-    try {
-      await navigator.clipboard.writeText(resetResult.temporaryPassword)
-      toast.success('Copied')
-    } catch {
-      toast.error('Could not copy')
-    }
-  }
 
   const columns = [
     {
@@ -153,15 +118,6 @@ export default function AdminUsersPage({ roleFilter }) {
           >
             <Pencil /> Role
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setResetTarget(u)}
-            aria-label={`Reset password for ${userDisplayName(u)}`}
-            disabledReason={u.id === me.id ? 'Use Change password in the sidebar.' : undefined}
-          >
-            <KeyRound /> Reset
-          </Button>
         </div>
       ),
     },
@@ -174,14 +130,9 @@ export default function AdminUsersPage({ roleFilter }) {
       <PageHeader
         title={config.title}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setImportOpen(true)}>
-              <FileUp /> Import
-            </Button>
-            <Button onClick={() => setCreateOpen(true)}>
-              <UserPlus /> {config.createLabel}
-            </Button>
-          </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <UserPlus /> {config.createLabel}
+          </Button>
         }
       />
 
@@ -219,21 +170,6 @@ export default function AdminUsersPage({ roleFilter }) {
         title={config.createLabel}
       />
 
-      <ImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        title={config.importTitle}
-        parseRecord={(row) => {
-          const values = { ...row.values, role: row.values?.role || config.defaultRole }
-          return parseUserRecord({ ...row, values })
-        }}
-        onImport={async (rows) => {
-          await importUsers.mutateAsync(
-            rows.map((r) => ({ ...r, role: config.allowedRoles.includes(r.role) ? r.role : config.defaultRole })),
-          )
-        }}
-      />
-
       <EditRoleDialog
         user={roleTarget}
         onOpenChange={(open) => !open && setRoleTarget(null)}
@@ -250,38 +186,6 @@ export default function AdminUsersPage({ roleFilter }) {
         onConfirm={() => updateUser.mutate({ id: toggleTarget.id, isActive: !toggleTarget.isActive }, { onSettled: () => setToggleTarget(null) })}
       />
 
-      <ConfirmDialog
-        open={Boolean(resetTarget)}
-        onOpenChange={(open) => !open && !resetPassword.isPending && setResetTarget(null)}
-        title={`Reset password for ${userDisplayName(resetTarget)}?`}
-        confirmLabel="Reset password"
-        tone="danger"
-        isPending={resetPassword.isPending}
-        onConfirm={() => resetPassword.mutate(resetTarget.id)}
-      />
-
-      <Dialog open={Boolean(resetResult)} onOpenChange={(open) => !open && setResetResult(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Temporary password</DialogTitle>
-            <DialogDescription>Copy it now. It will not be shown again.</DialogDescription>
-          </DialogHeader>
-          <DialogBody className="space-y-3">
-            <p className="num break-all rounded-md border border-border bg-sunken px-3 py-2 font-mono text-sm font-semibold">
-              {resetResult?.temporaryPassword}
-            </p>
-            <p className="text-sm text-muted">Expires {formatDateTime(resetResult?.expiresAt)}</p>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setResetResult(null)}>
-              Done
-            </Button>
-            <Button onClick={copyPassword}>
-              <Copy /> Copy
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

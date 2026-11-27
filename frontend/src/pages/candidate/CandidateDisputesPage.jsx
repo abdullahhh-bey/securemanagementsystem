@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Clock3, Gavel, MessageSquareText, Plus, Send } from 'lucide-react'
 import { Badge } from '@/components/StatusBadge'
@@ -15,6 +15,7 @@ import { useCandidateDisputes, useCandidateResults, useCreateCandidateDispute } 
 import { formatDateTime } from '@/lib/format'
 
 const tones = { OPEN: 'warning', UNDER_REVIEW: 'info', RESOLVED: 'success', REJECTED: 'danger' }
+const EMPTY_LIST = []
 
 export default function CandidateDisputesPage() {
   const [searchParams] = useSearchParams()
@@ -23,8 +24,9 @@ export default function CandidateDisputesPage() {
   const [open, setOpen] = useState(false)
   const [resultId, setResultId] = useState('')
   const [explanation, setExplanation] = useState('')
-  const disputes = disputesQuery.data ?? []
-  const results = resultsQuery.data ?? []
+  const [dismissedAutoOpenId, setDismissedAutoOpenId] = useState(null)
+  const disputes = disputesQuery.data ?? EMPTY_LIST
+  const results = resultsQuery.data ?? EMPTY_LIST
   const disputedResultIds = useMemo(
     () => new Set(disputes.map((dispute) => dispute.result?.id ?? dispute.resultId)),
     [disputes],
@@ -33,23 +35,24 @@ export default function CandidateDisputesPage() {
     () => results.filter((result) => result.status === 'PUBLISHED' && !disputedResultIds.has(result.id)),
     [disputedResultIds, results],
   )
-  const selectedResult = eligibleResults.find((result) => result.id === resultId)
+  const requestedResultId = searchParams.get('resultId')
+  const autoOpenResultId =
+    requestedResultId !== dismissedAutoOpenId &&
+    eligibleResults.some((result) => result.id === requestedResultId)
+      ? requestedResultId
+      : ''
+  const dialogResultId = resultId || autoOpenResultId
+  const dialogOpen = open || Boolean(autoOpenResultId)
+  const selectedResult = eligibleResults.find((result) => result.id === dialogResultId)
   const trimmedExplanation = explanation.trim()
   const create = useCreateCandidateDispute({
     onSuccess: () => {
       setOpen(false)
       setExplanation('')
       setResultId('')
+      if (autoOpenResultId) setDismissedAutoOpenId(autoOpenResultId)
     },
   })
-
-  useEffect(() => {
-    const requestedId = searchParams.get('resultId')
-    if (requestedId && eligibleResults.some((result) => result.id === requestedId)) {
-      setResultId(requestedId)
-      setOpen(true)
-    }
-  }, [searchParams, eligibleResults])
 
   const openDialog = () => {
     setResultId(eligibleResults[0]?.id ?? '')
@@ -59,6 +62,7 @@ export default function CandidateDisputesPage() {
     if (!next && !create.isPending) {
       setOpen(false)
       setExplanation('')
+      if (autoOpenResultId) setDismissedAutoOpenId(autoOpenResultId)
     }
   }
 
@@ -119,7 +123,7 @@ export default function CandidateDisputesPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={closeDialog}>
+      <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Submit a result dispute</DialogTitle>
@@ -130,7 +134,7 @@ export default function CandidateDisputesPage() {
           <div className="space-y-4 px-6 pb-2">
             <FormField label="Published result" required>
               {(field) => (
-                <Select {...field} value={resultId} onChange={(event) => setResultId(event.target.value)} disabled={create.isPending}>
+                <Select {...field} value={dialogResultId} onChange={(event) => setResultId(event.target.value)} disabled={create.isPending}>
                   <option value="">Select a result</option>
                   {eligibleResults.map((result) => (
                     <option key={result.id} value={result.id}>
@@ -163,7 +167,7 @@ export default function CandidateDisputesPage() {
             <Button
               loading={create.isPending}
               disabledReason={!selectedResult || trimmedExplanation.length < 20 ? 'Choose a result and write at least 20 characters.' : undefined}
-              onClick={() => create.mutate({ resultId, explanation: trimmedExplanation })}
+              onClick={() => create.mutate({ resultId: dialogResultId, explanation: trimmedExplanation })}
             >
               <Send /> Submit dispute
             </Button>

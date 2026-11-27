@@ -17,7 +17,6 @@ import { DIFFICULTY_OPTIONS, QUESTION_TYPE_META } from '@/lib/constants'
 import { parseQuestionRecord } from '@/lib/importSchemas'
 import { AssignedQuestions } from './questions/AssignedQuestions'
 import { QuestionFormDialog } from './questions/QuestionFormDialog'
-import { ShufflePreviewDialog } from './questions/ShufflePreviewDialog'
 
 const toDraftItems = (items) =>
   (items ?? []).map((item) => ({
@@ -38,7 +37,6 @@ export function QuestionsTab({ exam }) {
   const [editing, setEditing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [importOpen, setImportOpen] = useState(false)
-  const [shuffleOpen, setShuffleOpen] = useState(false)
 
   const editable = assigned.data?.editable ?? exam.status === 'DRAFT'
   const serverDraft = useMemo(() => toDraftItems(assigned.data?.items), [assigned.data])
@@ -78,14 +76,6 @@ export function QuestionsTab({ exam }) {
       onSuccess: () => setDraftOverride(null),
     })
   }
-
-  const savedCount = assigned.data?.items?.length ?? 0
-  const hasUnsavedChanges = dirty
-  const shuffleDisabledReason = hasUnsavedChanges
-    ? 'Save your changes before previewing shuffle.'
-    : savedCount === 0
-      ? 'Add and save questions first.'
-      : undefined
 
   const columns = [
     {
@@ -167,8 +157,6 @@ export function QuestionsTab({ exam }) {
         onRetry={assigned.refetch}
         isRetrying={assigned.isRefetching}
         isLoading={assigned.isPending && !assigned.data}
-        onPreviewShuffle={() => setShuffleOpen(true)}
-        shuffleDisabledReason={shuffleDisabledReason}
       />
 
       <section aria-labelledby="bank-heading">
@@ -258,8 +246,6 @@ export function QuestionsTab({ exam }) {
         ]}
         onImport={(rows) => importQuestions.mutateAsync(rows)}
       />
-
-      <ShufflePreviewDialog open={shuffleOpen} onOpenChange={setShuffleOpen} examId={exam.id} hasSavedQuestions={savedCount > 0 && !hasUnsavedChanges} />
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

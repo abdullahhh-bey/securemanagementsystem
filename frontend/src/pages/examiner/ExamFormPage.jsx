@@ -26,9 +26,8 @@ const EMPTY = {
   startAt: '',
   endAt: '',
   durationMinutes: 60,
-  totalMarks: 100,
   maxAttempts: 1,
-  settings: { shuffleQuestions: true, shuffleOptions: true, negativeMarking: false },
+  settings: { shuffleQuestions: true, shuffleOptions: true },
 }
 
 const toFormValues = (raw) => {
@@ -40,7 +39,6 @@ const toFormValues = (raw) => {
     startAt: isoToLocalInput(exam.startsAt),
     endAt: isoToLocalInput(exam.endsAt),
     durationMinutes: exam.durationMinutes,
-    totalMarks: exam.totalMarks,
     maxAttempts: exam.maxAttempts ?? 1,
     settings: { ...EMPTY.settings, ...exam.settings },
   }
@@ -130,9 +128,6 @@ function ExamForm({ exam }) {
               required
             >
               {(field) => <Input {...field} type="number" inputMode="numeric" min={1} step={1} {...register('durationMinutes', { valueAsNumber: true })} />}
-            </FormField>
-            <FormField label="Total marks" error={errors.totalMarks?.message} required>
-              {(field) => <Input {...field} type="number" inputMode="numeric" min={1} step={1} {...register('totalMarks', { valueAsNumber: true })} />}
             </FormField>
             <FormField label="Max attempts" error={errors.maxAttempts?.message}>
               {(field) => <Input {...field} type="number" inputMode="numeric" min={1} step={1} {...register('maxAttempts', { valueAsNumber: true })} />}

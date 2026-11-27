@@ -163,7 +163,7 @@ export function CandidatesTab({ exam }) {
         title="Import candidates"
         description="Upload a CSV or JSON file of emails. Only people who already have candidate accounts and are not already enrolled can be added."
         sampleHint="Required column: email"
-        templateCsv={'email\r\ncandidate1@demo.com\r\ncandidate2@demo.com\r\n'}
+        templateCsv={'email\r\ncandidate1@example.com\r\ncandidate2@example.com\r\n'}
         parseRecord={parseCandidateEnrollRecord}
         columns={[{ key: 'email', header: 'Email', cell: (row) => row.value.email }]}
         onImport={async (rows) => {

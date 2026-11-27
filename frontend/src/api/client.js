@@ -1,5 +1,5 @@
 /**
- * Thin fetch wrapper used by every real-mode API function.
+ * Thin fetch wrapper used by every API function.
  *
  *  - base URL from VITE_API_URL, cookies sent with every request
  *  - JSON in / JSON out
@@ -7,7 +7,6 @@
  *      { code, message, details }  (plus `status` for convenience)
  */
 
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
 const DEFAULT_CODES = {

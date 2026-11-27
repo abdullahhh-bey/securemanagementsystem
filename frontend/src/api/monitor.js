@@ -1,5 +1,4 @@
-import { USE_MOCK, pick, request } from './client'
-import * as mock from './mock/monitor'
+import { pick, request } from './client'
 
 const EXAMINER_BASE = '/api/examiner'
 
@@ -49,8 +48,6 @@ function adaptMonitorAttempt(attempt) {
  * -> { serverTime, summary, attempts } (soft presence from lastActivityAt; not websockets)
  */
 export const getMonitor = async (examId) => {
-  if (USE_MOCK) return mock.getMonitor(examId)
-
   const response = await request(`${EXAMINER_BASE}/exams/${examId}/monitor`)
   const rawAttempts = pick(response, 'attempts')
   const summary = pick(response, 'summary') ?? {}
@@ -91,8 +88,6 @@ function adaptIncidentEvent(event) {
  * (no /incidents route — events are AttemptEvent rows).
  */
 export const getIncidents = async (examId, attemptId) => {
-  if (USE_MOCK) return mock.getIncidents(examId, attemptId)
-
   const [attemptResponse, eventsResponse] = await Promise.all([
     request(`${EXAMINER_BASE}/exams/${examId}/attempts/${attemptId}`),
     request(`${EXAMINER_BASE}/exams/${examId}/attempts/${attemptId}/events`),
@@ -124,8 +119,6 @@ function adaptAnnouncement(row) {
 
 // GET /api/examiner/exams/:examId/announcements -> [{ id, message, sentAt, sentBy }] (newest first)
 export const listAnnouncements = async (examId) => {
-  if (USE_MOCK) return mock.listAnnouncements(examId)
-
   const response = await request(`${EXAMINER_BASE}/exams/${examId}/announcements`)
   const rows = pick(response, 'announcements')
   return (Array.isArray(rows) ? rows : []).map(adaptAnnouncement)
@@ -134,8 +127,6 @@ export const listAnnouncements = async (examId) => {
 // POST /api/examiner/exams/:examId/announcements { message (1-500) } -> announcement.
 // 409 when the exam is not PUBLISHED/ONGOING.
 export const sendAnnouncement = async (examId, message) => {
-  if (USE_MOCK) return mock.sendAnnouncement(examId, message)
-
   const response = await request(`${EXAMINER_BASE}/exams/${examId}/announcements`, {
     method: 'POST',
     body: { message },
@@ -192,8 +183,6 @@ function adaptDisruptionAttempt(entry) {
 //   -> { policy, attempts: [{ attemptId, candidate, status, gaps, totalGapSeconds, ... }] }
 // Gaps are derived from NETWORK_DISCONNECTED / NETWORK_RESTORED AttemptEvent pairs.
 export const listDisruptions = async (examId) => {
-  if (USE_MOCK) return mock.listDisruptions(examId)
-
   const response = await request(`${EXAMINER_BASE}/exams/${examId}/disruptions`)
   const attempts = pick(response, 'attempts')
   return {
@@ -218,8 +207,6 @@ function adaptCompensationRow(row) {
 // GET /api/examiner/exams/:examId/compensations
 // -> [{ id, attemptId, candidate, minutes, reason, grantedBy, at }] (newest first)
 export const listCompensations = async (examId) => {
-  if (USE_MOCK) return mock.listCompensations(examId)
-
   const response = await request(`${EXAMINER_BASE}/exams/${examId}/compensations`)
   const rows = pick(response, 'compensations')
   return (Array.isArray(rows) ? rows : []).map(adaptCompensationRow).filter(Boolean)
@@ -229,8 +216,6 @@ export const listCompensations = async (examId) => {
 // { minutes: integer >= 1 and <= remaining cap, reason: string >= 15 chars }
 // -> updated disruption entry for that attempt (personal deadline + cap totals).
 export const grantCompensation = async (examId, attemptId, input) => {
-  if (USE_MOCK) return mock.grantCompensation(examId, attemptId, input)
-
   const response = await request(
     `${EXAMINER_BASE}/exams/${examId}/attempts/${attemptId}/compensation`,
     { method: 'POST', body: input },

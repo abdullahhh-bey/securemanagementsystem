@@ -62,7 +62,7 @@ export function useEnrollCandidates(id, options) {
 }
 
 export function useRemoveCandidate(id, options) {
-  return useAppMutation((candidateId) => examsApi.removeExamCandidate(id, candidateId), {
+  return useAppMutation((enrollmentId) => examsApi.removeExamCandidate(id, enrollmentId), {
     invalidate: [queryKeys.exams],
     successMessage: 'Candidate removed',
     ...options,

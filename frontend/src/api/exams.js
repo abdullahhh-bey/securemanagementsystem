@@ -1,6 +1,5 @@
-import { ApiError, USE_MOCK, pick, request } from './client'
+import { ApiError, pick, request } from './client'
 import { normalizeExam } from '@/lib/schema'
-import * as mock from './mock/exams'
 
 /**
  * Aligns with prisma `Exam` (+ UI helpers).
@@ -75,44 +74,29 @@ function pickExamList(response) {
   return (Array.isArray(exams) ? exams : []).map(adaptExam).filter(Boolean)
 }
 
-const one = async (promise) => {
-  const raw = await promise
-  return adaptExam(raw) ?? normalizeExam(raw)
-}
-const many = async (promise) => {
-  const list = await promise
-  return (Array.isArray(list) ? list : []).map((exam) => adaptExam(exam) ?? normalizeExam(exam)).filter(Boolean)
-}
-
 // GET /api/examiner/exams -> Exam[]
 export const listExams = () =>
-  USE_MOCK ? many(mock.listExams()) : request(EXAMS_BASE).then(pickExamList)
+  request(EXAMS_BASE).then(pickExamList)
 
 // GET /api/examiner/exams/:examId -> Exam
 export const getExam = (id) =>
-  USE_MOCK ? one(mock.getExam(id)) : request(`${EXAMS_BASE}/${id}`).then(pickExam)
+  request(`${EXAMS_BASE}/${id}`).then(pickExam)
 
 // POST /api/examiner/exams -> Exam
 export const createExam = (input) =>
-  USE_MOCK
-    ? one(mock.createExam(input))
-    : request(EXAMS_BASE, { method: 'POST', body: toExamWriteBody(input) }).then(pickExam)
+  request(EXAMS_BASE, { method: 'POST', body: toExamWriteBody(input) }).then(pickExam)
 
 // PUT /api/examiner/exams/:examId -> Exam
 export const updateExam = (id, input) =>
-  USE_MOCK
-    ? one(mock.updateExam(id, input))
-    : request(`${EXAMS_BASE}/${id}`, { method: 'PUT', body: toExamWriteBody(input) }).then(pickExam)
+  request(`${EXAMS_BASE}/${id}`, { method: 'PUT', body: toExamWriteBody(input) }).then(pickExam)
 
 // DELETE /api/examiner/exams/:examId
 export const deleteExam = (id) =>
-  USE_MOCK ? mock.deleteExam(id) : request(`${EXAMS_BASE}/${id}`, { method: 'DELETE' })
+  request(`${EXAMS_BASE}/${id}`, { method: 'DELETE' })
 
 // PATCH /api/examiner/exams/:examId/publish -> Exam
 export const publishExam = (id) =>
-  USE_MOCK
-    ? one(mock.publishExam(id))
-    : request(`${EXAMS_BASE}/${id}/publish`, { method: 'PATCH' }).then(pickExam)
+  request(`${EXAMS_BASE}/${id}/publish`, { method: 'PATCH' }).then(pickExam)
 
 function normalizePersonName(user) {
   if (!user || typeof user !== 'object') return ''
@@ -158,13 +142,10 @@ function pickCandidateUserList(response) {
 
 // GET /api/examiner/exams/:examId/enrollments -> enrolled candidate DTOs
 export const listExamCandidates = (id) =>
-  USE_MOCK
-    ? mock.listExamCandidates(id)
-    : request(`${EXAMS_BASE}/${id}/enrollments`).then(pickEnrollmentList)
+  request(`${EXAMS_BASE}/${id}/enrollments`).then(pickEnrollmentList)
 
 // GET /api/examiner/candidates, minus those already enrolled in this exam
 export const listAvailableCandidates = async (id) => {
-  if (USE_MOCK) return mock.listAvailableCandidates(id)
   const [allCandidates, enrolled] = await Promise.all([
     request('/api/examiner/candidates').then(pickCandidateUserList),
     listExamCandidates(id),
@@ -173,9 +154,11 @@ export const listAvailableCandidates = async (id) => {
   return allCandidates.filter((candidate) => !enrolledIds.has(candidate.id))
 }
 
+// GET /api/examiner/candidates -> active candidate accounts
+export const listCandidates = () => request('/api/examiner/candidates').then(pickCandidateUserList)
+
 // POST /api/examiner/exams/:examId/enrollments { candidateId } (once per selected id)
 export const enrollCandidates = async (id, candidateIds) => {
-  if (USE_MOCK) return mock.enrollCandidates(id, candidateIds)
   const ids = Array.isArray(candidateIds) ? candidateIds : []
   for (const candidateId of ids) {
     await request(`${EXAMS_BASE}/${id}/enrollments`, {
@@ -187,10 +170,8 @@ export const enrollCandidates = async (id, candidateIds) => {
 }
 
 // PATCH /api/examiner/exams/:examId/enrollments/:enrollmentId/withdraw
-// Real mode expects enrollmentId; mock mode still keys by candidate id.
-export const removeExamCandidate = (id, enrollmentOrCandidateId) =>
-  USE_MOCK
-    ? mock.removeExamCandidate(id, enrollmentOrCandidateId)
-    : request(`${EXAMS_BASE}/${id}/enrollments/${enrollmentOrCandidateId}/withdraw`, {
-        method: 'PATCH',
-      })
+// The backend route identifies the enrollment, not the candidate.
+export const removeExamCandidate = (id, enrollmentId) =>
+  request(`${EXAMS_BASE}/${id}/enrollments/${enrollmentId}/withdraw`, {
+    method: 'PATCH',
+  })

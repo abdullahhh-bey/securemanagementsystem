@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
-   THEME TOKENS - COMSATS University Lahore
+   THEME TOKENS - FS University Lahore
 
    This is the ONLY file in src/ that may contain colour literals. Everything
    else (components, pages, charts, other CSS) refers to the semantic names
@@ -80,6 +80,18 @@
   --accent-foreground: var(--ink);
   --destructive: var(--danger);
   --destructive-foreground: var(--on-primary);
+}
+
+html[data-candidate-contrast="high"] {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --border: #414141;
+  --ink: #000000;
+  --muted: #333333;
+  --brand-blue: #003b8e;
+  --brand-blue-hover: #002c6b;
+  --brand-sky: #e8e8e8;
+  --control-border: #333333;
 }
 
 /* 4. Tailwind names ------------------------------------------------------ */

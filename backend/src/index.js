@@ -3,6 +3,8 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import express from "express";
 import cookieParser from "cookie-parser";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import prisma from "../db/db.js";
 import { protect, authorize } from "./middleware/auth.middleware.js";
@@ -26,6 +28,9 @@ import studentRoutes from "./routes/student.routes.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
+const frontendDistPath = fileURLToPath(
+  new URL("../../frontend/dist/", import.meta.url),
+);
 
 // Middleware
 app.use(express.json());
@@ -33,7 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Health check
-app.get("/", (req, res) => {
+app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "ExamFlow API is running.",
@@ -60,7 +65,17 @@ app.use("/api/examiner", attemptRoutes);
 app.use("/api/examiner/disputes", disputeRoutes);
 app.use("/api/candidate", studentRoutes);
 
+// Serve the frontend and support client-side routes in production.
+app.use(express.static(frontendDistPath));
+app.get("/{*path}", (req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    return next();
+  }
+
+  res.sendFile(path.join(frontendDistPath, "index.html"));
+});
+
 // Start server
 app.listen(port, () => {
-  console.log(`ExamFlow API running on http://localhost:${port}`);
+  console.log(`ExamFlow running on port ${port}`);
 });

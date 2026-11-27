@@ -42,11 +42,18 @@ docs/
 The PostgreSQL/Neon schema is defined in `backend/prisma/schema.prisma`. See [DATABASE_DESIGN.md](./DATABASE_DESIGN.md) for the ER diagram, model decisions, constraints, and safe migration guidance.
 
 ## Data Flows
-The admin API is implemented as an isolated router factory in the backend. It receives the Prisma client and auth middleware through dependency injection and is mounted by the server integration after the auth teammate's middleware contract is available. See [ADMIN_API.md](./ADMIN_API.md).
+The frontend sends authenticated requests to the Express API under `/api`, using HTTP-only session cookies. In local development, the Vite proxy forwards same-origin `/api` requests to the backend. The frontend has no mock-mode switch or mock API fixtures.
 
 ## Teacher Portal
 - `frontend/src/layouts/ExaminerLayout.jsx` provides Dashboard, Students, Exams, and Create exam navigation.
-- `frontend/src/pages/examiner/StudentsPage.jsx` uses local frontend mock data only; no backend API is connected. Exam enrollment remains scoped to each exam's existing UI workflow.
-- `frontend/src/pages/examiner/ExamsListPage.jsx` lists the examiner's exams. Exam creation is a separate route at `/examiner/exams/new`.
-- Question authoring and assignment changes are frontend-only: optional topics, one-answer Multiple Choices, per-question penalty fractions, and no group controls. The student exam-details view exposes only the negative-marking On/Off status.
+- The Students directory reads active candidates from `GET /api/examiner/candidates`; exam enrollment and removal use the examiner enrollment endpoints.
+- Exams, questions, grading, results, disputes, and attempt monitoring use the corresponding `/api/examiner` endpoints. Exam creation is a separate route at `/examiner/exams/new`.
+- Examiner question analytics at `/api/examiner/exams/:examId/analytics/questions` aggregate persisted official final-attempt answers; sandbox/non-final attempts and ungraded answers are excluded from graded difficulty rates.
+- Exam settings exposed in the UI are limited to persisted backend fields. Negative marking and standalone total-mark inputs are not offered because the backend does not persist them; total marks come from assigned question marks.
 - Authenticated user DTOs are normalized at the frontend API boundary; a root React error boundary renders a recovery screen for uncaught render errors.
+
+## Integration Boundaries
+- Candidate and admin screens use their authenticated `/api/candidate` and `/api/admin` endpoints.
+- Candidate display preferences persist through `/api/candidate/preferences`; attempt scratchpads use candidate-owned `/api/candidate/attempts/:attemptId/scratchpad` endpoints and are separate from submitted answers.
+- Generated-report creation, file storage, and verification remain unsupported: `GeneratedReport` stores metadata, and the verification panel is presentation-only until a storage/checksum verification contract exists.
+- Features without matching backend endpoints (such as generated-report downloads and password reset/change) are not presented as working API-backed flows.
