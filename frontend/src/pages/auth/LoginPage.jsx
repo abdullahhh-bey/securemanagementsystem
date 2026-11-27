@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,14 +15,8 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { useAuth } from '@/hooks/useAuth'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useToast } from '@/hooks/useToast'
-import { ROLE_META, roleHome } from '@/lib/constants'
+import { roleHome } from '@/lib/constants'
 import { forgotPasswordSchema, loginSchema } from '@/lib/schemas'
-
-const DEMO_ACCOUNTS = [
-  { role: 'ADMIN', email: 'admin@demo.com', password: 'Admin@123' },
-  { role: 'EXAMINER', email: 'examiner@demo.com', password: 'Examiner@123' },
-  { role: 'CANDIDATE', email: 'candidate1@demo.com', password: 'Candidate@123' },
-]
 
 function BrandPanel() {
   return (
@@ -104,13 +98,10 @@ export default function LoginPage() {
   const toast = useToast()
   const [formError, setFormError] = useState(null)
   const [forgotOpen, setForgotOpen] = useState(false)
-  const submitRef = useRef(null)
 
   const {
     register,
     handleSubmit,
-    setValue,
-    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(loginSchema),
@@ -126,14 +117,6 @@ export default function LoginPage() {
       setFormError(error.message)
       if (error.code === 'NETWORK_ERROR' || error.status >= 500) toast.error(error.message)
     }
-  }
-
-  const fillDemo = (account) => {
-    setValue('email', account.email, { shouldDirty: true })
-    setValue('password', account.password, { shouldDirty: true })
-    clearErrors()
-    setFormError(null)
-    submitRef.current?.focus()
   }
 
   return (
@@ -174,26 +157,11 @@ export default function LoginPage() {
                 </Button>
               </div>
 
-              <Button ref={submitRef} type="submit" size="lg" loading={isSubmitting} loadingLabel="Signing in…">
+              <Button type="submit" size="lg" loading={isSubmitting} loadingLabel="Signing in…">
                 {!isSubmitting && <LogIn />}
                 Sign in
               </Button>
             </form>
-
-            <div className="mt-10 border-t border-border pt-6">
-              <p className="text-sm font-semibold">Demo</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {DEMO_ACCOUNTS.map((account) => {
-                  const Icon = ROLE_META[account.role].icon
-                  return (
-                    <Button key={account.role} variant="secondary" size="sm" onClick={() => fillDemo(account)}>
-                      <Icon />
-                      {ROLE_META[account.role].label}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
           </div>
         </main>
         <AppFooter />

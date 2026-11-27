@@ -38,11 +38,16 @@ export const changePasswordSchema = z
     }
   })
 
+/** Admin create-user: EXAMINER/CANDIDATE only; password min 12 to match POST /api/admin/users. */
 export const createUserSchema = z.object({
   name: requiredText('Full name', 160),
   email: z.string().trim().min(1, 'Email is required.').pipe(z.email('Enter a valid email address.')),
-  role: z.enum([ROLES.ADMIN, ROLES.EXAMINER, ROLES.CANDIDATE], { error: 'Choose a role.' }),
-  password: passwordRules,
+  role: z.enum([ROLES.EXAMINER, ROLES.CANDIDATE], { error: 'Choose a role.' }),
+  password: z
+    .string()
+    .min(12, 'Use at least 12 characters.')
+    .regex(/[A-Za-z]/, 'Include at least one letter.')
+    .regex(/\d/, 'Include at least one number.'),
 })
 
 export const editRoleSchema = z.object({

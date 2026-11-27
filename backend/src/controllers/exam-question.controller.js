@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // ASSIGN QUESTION TO EXAM
 const assignQuestion = async (req, res) => {
@@ -108,6 +109,19 @@ const assignQuestion = async (req, res) => {
       },
     });
 
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.EXAM_QUESTION_ASSIGNED,
+      entityType: AuditEntityType.EXAM_QUESTION,
+      entityId: assignedQuestion.id,
+      newValues: {
+        examId,
+        questionVersionId,
+        position: assignedQuestion.position,
+        assignedMarks: assignedQuestion.assignedMarks,
+      },
+    });
+
     return res.status(201).json({
       success: true,
       message: "Question assigned to exam successfully.",
@@ -166,6 +180,19 @@ const removeQuestion = async (req, res) => {
     await prisma.examQuestion.delete({
       where: {
         id: examQuestionId,
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.EXAM_QUESTION_REMOVED,
+      entityType: AuditEntityType.EXAM_QUESTION,
+      entityId: examQuestionId,
+      oldValues: {
+        examId,
+        questionVersionId: assignedQuestion.questionVersionId,
+        position: assignedQuestion.position,
+        assignedMarks: assignedQuestion.assignedMarks,
       },
     });
 

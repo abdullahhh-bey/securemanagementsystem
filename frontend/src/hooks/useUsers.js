@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import * as adminApi from '@/api/admin'
 import { queryKeys } from '@/lib/queryKeys'
+import { userDisplayName } from '@/lib/schema'
 import { useAppMutation } from './useAppMutation'
 
 export function useUsers() {
@@ -10,7 +11,7 @@ export function useUsers() {
 export function useCreateUser(options) {
   return useAppMutation(adminApi.createUser, {
     invalidate: [queryKeys.users],
-    successMessage: (user) => `${user.name} was added`,
+    successMessage: (user) => `${userDisplayName(user) || 'User'} was added`,
     ...options,
   })
 }

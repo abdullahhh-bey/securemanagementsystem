@@ -28,7 +28,25 @@ function CreateUserForm({ onDone, defaultRole, allowedRoles }) {
   const onSubmit = (values) =>
     createUser.mutate(values, {
       onSuccess: onDone,
-      onError: (error) => applyFieldErrors(error, setError),
+      onError: (error) => {
+        // Backend validates `fullName`; the form field is still `name`.
+        const details = error?.details
+        if (Array.isArray(details)) {
+          applyFieldErrors(
+            {
+              ...error,
+              details: details.map((entry) => {
+                const path = entry.field ?? entry.path
+                if (path === 'fullName') return { ...entry, field: 'name', path: 'name' }
+                return entry
+              }),
+            },
+            setError,
+          )
+          return
+        }
+        applyFieldErrors(error, setError)
+      },
     })
 
   return (

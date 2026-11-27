@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // AUTOMATICALLY EVALUATE ALL SUBMITTED ATTEMPTS
 const evaluateExam = async (req, res) => {
@@ -159,6 +160,17 @@ const evaluateExam = async (req, res) => {
           resultId: result.id,
         });
       }
+
+      await writeAuditLog(tx, {
+        actorId: req.user.id,
+        action: AuditAction.EXAM_EVALUATED,
+        entityType: AuditEntityType.EXAM,
+        entityId: examId,
+        newValues: {
+          evaluatedAttempts: results.length,
+          resultStatus: "READY_TO_PUBLISH",
+        },
+      });
 
       return results;
     });

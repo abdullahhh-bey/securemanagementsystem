@@ -1,5 +1,6 @@
 
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // CREATE EXAM
 const createExam = async (req, res) => {
@@ -68,6 +69,21 @@ const createExam = async (req, res) => {
         randomizeQuestions: randomizeQuestions ?? false,
         randomizeOptions: randomizeOptions ?? false,
         status: "DRAFT",
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.EXAM_CREATED,
+      entityType: AuditEntityType.EXAM,
+      entityId: exam.id,
+      newValues: {
+        title: exam.title,
+        status: exam.status,
+        startsAt: exam.startsAt,
+        endsAt: exam.endsAt,
+        durationMinutes: exam.durationMinutes,
+        maxAttempts: exam.maxAttempts,
       },
     });
 
@@ -332,6 +348,31 @@ const updateExam = async (req, res) => {
       data,
     });
 
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.EXAM_UPDATED,
+      entityType: AuditEntityType.EXAM,
+      entityId: updatedExam.id,
+      oldValues: {
+        title: existingExam.title,
+        startsAt: existingExam.startsAt,
+        endsAt: existingExam.endsAt,
+        durationMinutes: existingExam.durationMinutes,
+        maxAttempts: existingExam.maxAttempts,
+        randomizeQuestions: existingExam.randomizeQuestions,
+        randomizeOptions: existingExam.randomizeOptions,
+      },
+      newValues: {
+        title: updatedExam.title,
+        startsAt: updatedExam.startsAt,
+        endsAt: updatedExam.endsAt,
+        durationMinutes: updatedExam.durationMinutes,
+        maxAttempts: updatedExam.maxAttempts,
+        randomizeQuestions: updatedExam.randomizeQuestions,
+        randomizeOptions: updatedExam.randomizeOptions,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       message: "Exam updated successfully.",
@@ -390,6 +431,17 @@ const deleteExam = async (req, res) => {
 
     await prisma.exam.delete({
       where: { id: examId },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.EXAM_DELETED,
+      entityType: AuditEntityType.EXAM,
+      entityId: examId,
+      oldValues: {
+        title: exam.title,
+        status: exam.status,
+      },
     });
 
     return res.status(200).json({
@@ -458,6 +510,19 @@ const publishExam = async (req, res) => {
       data: {
         status: "PUBLISHED",
         publishedAt: new Date(),
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.EXAM_PUBLISHED,
+      entityType: AuditEntityType.EXAM,
+      entityId: publishedExam.id,
+      oldValues: { status: exam.status },
+      newValues: {
+        status: publishedExam.status,
+        publishedAt: publishedExam.publishedAt,
+        questionCount: exam._count.questions,
       },
     });
 

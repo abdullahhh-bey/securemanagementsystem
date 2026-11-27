@@ -1,4 +1,5 @@
 import prisma from "../../db/db.js";
+import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
 
 // GET ALL CANDIDATES
 const getCandidates = async (req, res) => {
@@ -165,6 +166,21 @@ const enrollCandidate = async (req, res) => {
       });
     }
 
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.CANDIDATE_ENROLLED,
+      entityType: AuditEntityType.ENROLLMENT,
+      entityId: enrollment.id,
+      oldValues: existingEnrollment
+        ? { status: existingEnrollment.status }
+        : null,
+      newValues: {
+        examId,
+        candidateId,
+        status: enrollment.status,
+      },
+    });
+
     return res.status(201).json({
       success: true,
       message: "Candidate enrolled successfully.",
@@ -221,6 +237,19 @@ const withdrawCandidate = async (req, res) => {
       data: {
         status: "WITHDRAWN",
         withdrawnAt: new Date(),
+      },
+    });
+
+    await writeAuditLog(prisma, {
+      actorId: req.user.id,
+      action: AuditAction.CANDIDATE_WITHDRAWN,
+      entityType: AuditEntityType.ENROLLMENT,
+      entityId: updatedEnrollment.id,
+      oldValues: { status: enrollment.status },
+      newValues: {
+        examId,
+        candidateId: enrollment.candidateId,
+        status: updatedEnrollment.status,
       },
     });
 

@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useExams } from '@/hooks/useExams'
 import { useServerNow } from '@/hooks/useServerClock'
 import { formatCountdown, formatDateTime } from '@/lib/format'
+import { userDisplayName } from '@/lib/schema'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -86,6 +87,11 @@ export default function ExaminerDashboardPage() {
 
   const count = (status) => (exams ? exams.filter((e) => e.status === status).length : 0)
   const attention = exams ? buildAttentionItems(exams, now) : []
+  const firstName =
+    userDisplayName(user)
+      .replace(/^(Dr|Prof)\.?\s+/i, '')
+      .split(/\s+/)
+      .find(Boolean) || 'Teacher'
 
   const stats = [
     { label: 'Drafts', value: count('DRAFT'), icon: CircleDashed, hint: 'Still being prepared', to: '/examiner/exams?status=DRAFT' },
@@ -97,7 +103,7 @@ export default function ExaminerDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${user.name.replace(/^(Dr|Prof)\.?\s+/i, '').split(' ')[0]}`}
+        title={`Welcome back, ${firstName}`}
         actions={
           <Button asChild>
             <Link to="/examiner/exams/new">
