@@ -35,10 +35,11 @@ backend/
     validators/
   tests/
 docs/
+  ADMIN_API.md
 ```
 
 ## Database Schema
 The PostgreSQL/Neon schema is defined in `backend/prisma/schema.prisma`. See [DATABASE_DESIGN.md](./DATABASE_DESIGN.md) for the ER diagram, model decisions, constraints, and safe migration guidance.
 
 ## Data Flows
-The JavaScript frontend and backend remain bootstrapped independently; no API or database access code has been implemented. Database access will use Prisma from the backend after the API work is assigned.
+The admin API is implemented as an isolated router factory in the backend. It receives the Prisma client and auth middleware through dependency injection and is mounted by the server integration after the auth teammate's middleware contract is available. See [ADMIN_API.md](./ADMIN_API.md).

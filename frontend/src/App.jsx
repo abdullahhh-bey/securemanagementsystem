@@ -1,122 +1,144 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { ServerClockProvider } from '@/providers/ServerClockProvider'
+import { AuthProvider } from '@/providers/AuthProvider'
+import { ToastProvider } from '@/providers/ToastProvider'
+import { FullPageLoader, ProtectedRoute, PublicOnlyRoute, RootRedirect } from '@/routes/guards'
+import { ROLES } from '@/lib/constants'
+import LoginPage from '@/pages/auth/LoginPage'
+import ForbiddenPage from '@/pages/errors/ForbiddenPage'
+import NotFoundPage from '@/pages/errors/NotFoundPage'
 
-function App() {
-  const [count, setCount] = useState(0)
+const AdminLayout = lazy(() => import('@/layouts/AdminLayout'))
+const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'))
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
+const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage'))
+const AdminExamsPage = lazy(() => import('@/pages/admin/AdminExamsPage'))
+const ChangePasswordPage = lazy(() => import('@/pages/account/ChangePasswordPage'))
+const CandidateResultPage = lazy(() => import('@/pages/candidate/CandidateResultPage'))
+const ExamWorkspacePage = lazy(() => import('@/pages/examiner/ExamWorkspacePage'))
+const CandidateExamPage = lazy(() => import('@/pages/candidate/CandidateExamPage'))
+const CandidateExamsPage = lazy(() => import('@/pages/candidate/CandidateExamsPage'))
+const CandidateLayout = lazy(() => import('@/layouts/CandidateLayout'))
+const ExamShell = lazy(() => import('@/pages/examiner/ExamShell'))
+const ExamFormPage = lazy(() => import('@/pages/examiner/ExamFormPage'))
+const ExaminerDashboardPage = lazy(() => import('@/pages/examiner/ExaminerDashboardPage'))
+const ExaminerLayout = lazy(() => import('@/layouts/ExaminerLayout'))
+const ExamReviewPage = lazy(() => import('@/pages/examiner/ExamReviewPage'))
+const ExamsListPage = lazy(() => import('@/pages/examiner/ExamsListPage'))
 
+const ExamDetailsSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamDetailsSection })))
+const ExamCandidatesSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamCandidatesSection })))
+const ExamQuestionsSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamQuestionsSection })))
+const ExamMonitorLiveSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamMonitorLiveSection })))
+const ExamMonitorAnnouncementsSection = lazy(() =>
+  import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamMonitorAnnouncementsSection })),
+)
+const ExamMonitorDisruptionsSection = lazy(() =>
+  import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamMonitorDisruptionsSection })),
+)
+const ExamGradingSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamGradingSection })))
+const ExamResultsScoresSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsScoresSection })))
+const ExamResultsAnalyticsSection = lazy(() =>
+  import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsAnalyticsSection })),
+)
+const ExamResultsFairnessSection = lazy(() =>
+  import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsFairnessSection })),
+)
+const ExamResultsReportSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamResultsReportSection })))
+const ExamDisputesSection = lazy(() => import('@/pages/examiner/examSections').then((m) => ({ default: m.ExamDisputesSection })))
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error) => failureCount < 1 && (error?.code === 'NETWORK_ERROR' || error?.status >= 500),
+    },
+  },
+})
+
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ToastProvider>
+          <ServerClockProvider>
+            <AuthProvider>
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <Suspense fallback={<FullPageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<RootRedirect />} />
+                    <Route
+                      path="/login"
+                      element={
+                        <PublicOnlyRoute>
+                          <LoginPage />
+                        </PublicOnlyRoute>
+                      }
+                    />
+                    <Route path="/403" element={<ForbiddenPage />} />
 
-      <div className="ticks"></div>
+                    <Route path="/admin" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
+                      <Route element={<AdminLayout />}>
+                        <Route index element={<AdminOverviewPage />} />
+                        <Route path="users" element={<Navigate to="/admin/teachers" replace />} />
+                        <Route path="teachers" element={<AdminUsersPage roleFilter={ROLES.EXAMINER} />} />
+                        <Route path="students" element={<AdminUsersPage roleFilter={ROLES.CANDIDATE} />} />
+                        <Route path="exams" element={<AdminExamsPage />} />
+                        <Route path="audit" element={<AdminAuditPage />} />
+                        <Route path="account/password" element={<ChangePasswordPage />} />
+                        <Route path="*" element={<Navigate to="/404" replace />} />
+                      </Route>
+                    </Route>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+                    <Route path="/examiner" element={<ProtectedRoute allowedRoles={[ROLES.EXAMINER]} />}>
+                      <Route element={<ExaminerLayout />}>
+                        <Route index element={<ExaminerDashboardPage />} />
+                        <Route path="exams" element={<ExamsListPage />} />
+                        <Route path="exams/new" element={<ExamFormPage />} />
+                        <Route path="exams/:id/sandbox" element={<ExamWorkspacePage />} />
+                        <Route path="exams/:id/edit" element={<ExamFormPage />} />
+                        <Route path="exams/:id/review" element={<ExamReviewPage />} />
+                        <Route path="exams/:id" element={<ExamShell />}>
+                          <Route index element={<ExamDetailsSection />} />
+                          <Route path="candidates" element={<ExamCandidatesSection />} />
+                          <Route path="questions" element={<ExamQuestionsSection />} />
+                          <Route path="monitor" element={<ExamMonitorLiveSection />} />
+                          <Route path="monitor/announcements" element={<ExamMonitorAnnouncementsSection />} />
+                          <Route path="monitor/disruptions" element={<ExamMonitorDisruptionsSection />} />
+                          <Route path="grading" element={<ExamGradingSection />} />
+                          <Route path="results" element={<ExamResultsScoresSection />} />
+                          <Route path="results/analytics" element={<ExamResultsAnalyticsSection />} />
+                          <Route path="results/fairness" element={<ExamResultsFairnessSection />} />
+                          <Route path="results/report" element={<ExamResultsReportSection />} />
+                          <Route path="disputes" element={<ExamDisputesSection />} />
+                        </Route>
+                        <Route path="account/password" element={<ChangePasswordPage />} />
+                        <Route path="*" element={<Navigate to="/404" replace />} />
+                      </Route>
+                    </Route>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+                    <Route path="/candidate" element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE]} />}>
+                      <Route element={<CandidateLayout />}>
+                        <Route index element={<CandidateExamsPage />} />
+                        <Route path="exams/:id" element={<CandidateExamPage />} />
+                        <Route path="exams/:id/result" element={<CandidateResultPage />} />
+                        <Route path="account/password" element={<ChangePasswordPage />} />
+                        <Route path="*" element={<Navigate to="/404" replace />} />
+                      </Route>
+                    </Route>
+
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </AuthProvider>
+          </ServerClockProvider>
+        </ToastProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   )
 }
-
-export default App

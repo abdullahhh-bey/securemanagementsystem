@@ -1,0 +1,118 @@
+/* ---------------------------------------------------------------------------
+   THEME TOKENS - COMSATS University Lahore
+
+   This is the ONLY file in src/ that may contain colour literals. Everything
+   else (components, pages, charts, other CSS) refers to the semantic names
+   below. Edit the brand palette in section 1 and the whole app follows.
+
+   Contrast (WCAG AA >= 4.5:1 for text), checked against these exact values:
+     surface    on brand-blue        5.8:1   surface on brand-navy   14.0:1
+     surface    on brand-blue-hover  8.1:1   brand-blue on surface    5.8:1
+     brand-blue on sky               5.1:1   muted on bg / sky        5.6 / 5.2:1
+     ink        on bg / sky         15.0 / 13.9:1
+     on-dark at 70% on navy          7.6:1   ring-on-dark on navy     6.9:1
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* 1. Brand palette --------------------------------------------------- */
+  --brand-navy: #0b2a5b;
+  --brand-blue: #1d5fd1;
+  --brand-blue-hover: #164ba8;
+  --brand-sky: #e8f0fc;
+
+  --bg: #f6f8fc;
+  --surface: #ffffff;
+  --border: #dde3ee;
+  --ink: #14213d;
+  --muted: #5b6475;
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+
+  /* Form-control outline: must stay >= 3:1 against the surface (WCAG 1.4.11). */
+  --control-border: #8a91a0;
+  --danger-hover: #991b1b;
+
+  /* 2. Semantic roles (what components use) ---------------------------- */
+  --background: var(--bg);
+  --sunken: color-mix(in srgb, var(--ink) 6%, var(--bg)); /* hover / chip fill */
+  --input: var(--control-border);
+
+  --primary: var(--brand-blue);
+  --primary-hover: var(--brand-blue-hover);
+  --on-primary: var(--surface);
+
+  --navy: var(--brand-navy);
+  --navy-hover: color-mix(in srgb, var(--brand-navy) 90%, var(--surface)); /* nav hover */
+  --navy-active: color-mix(in srgb, var(--brand-navy) 82%, var(--surface)); /* nav selected */
+  --on-dark: var(--surface); /* text on navy / ink fills */
+  --sky: var(--brand-sky);
+
+  --success-soft: color-mix(in srgb, var(--success) 8%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  --danger-soft: color-mix(in srgb, var(--danger) 7%, var(--surface));
+  --info-soft: color-mix(in srgb, var(--info) 8%, var(--surface));
+
+  /* Focus: brand-blue on light surfaces, a lighter tint on navy (brand-blue
+     on navy is only 2.4:1, too faint for a focus indicator). */
+  --ring: var(--brand-blue);
+  --ring-on-dark: color-mix(in srgb, var(--brand-blue) 45%, var(--surface));
+
+  --selection: color-mix(in srgb, var(--brand-blue) 22%, var(--surface));
+  --shadow-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  --chart-cursor: color-mix(in srgb, var(--brand-blue) 7%, transparent);
+
+  /* 3. shadcn/ui variables - same theme, so any shadcn component added later
+        follows it automatically. (`--muted` is kept as the muted *text*
+        colour, which is how this app already uses it.) */
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--sky);
+  --secondary-foreground: var(--ink);
+  --muted-foreground: var(--muted);
+  --accent: var(--sky);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-primary);
+}
+
+/* 4. Tailwind names ------------------------------------------------------ */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-navy: var(--navy);
+  --color-navy-hover: var(--navy-hover);
+  --color-navy-active: var(--navy-active);
+  --color-on-dark: var(--on-dark);
+  --color-sky: var(--sky);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-ring: var(--ring);
+  --color-ring-on-dark: var(--ring-on-dark);
+
+  --shadow-toast: 0 4px 16px var(--shadow-color);
+  --shadow-dialog: 0 8px 32px var(--shadow-color);
+}
