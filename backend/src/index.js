@@ -18,6 +18,8 @@ import attemptRoutes from "./routes/attempt.routes.js";
 
 import disputeRoutes from "./routes/dispute.routes.js";
 
+import studentRoutes from "./routes/student.routes.js";
+
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
@@ -43,6 +45,7 @@ app.use("/api/examiner/questions", questionRoutes);
 app.use("/api/examiner/candidates", candidateRoutes);
 app.use("/api/examiner", attemptRoutes);
 app.use("/api/examiner/disputes", disputeRoutes);
+app.use("/api/candidate", studentRoutes);
 
 // Start server
 app.listen(port, () => {
