@@ -119,12 +119,16 @@ export async function request(path, { method = 'GET', body, params, signal, skip
 }
 
 /**
- * Real endpoints may answer with the bare payload or wrap it under a named key
- * (`{ user }`, `{ exams }`, ...). This returns the payload either way.
+ * Endpoints may return a bare payload, a named key (`{ user }`), or a standard
+ * data envelope (`{ data: payload }`). Return the payload in each case.
  */
 export function pick(response, key) {
-  if (response && typeof response === 'object' && !Array.isArray(response) && key in response) return response[key]
-  return response
+  if (!response || typeof response !== 'object' || Array.isArray(response)) return response
+  if (key in response) return response[key]
+
+  const payload = response.data ?? response
+  if (payload && typeof payload === 'object' && !Array.isArray(payload) && key in payload) return payload[key]
+  return payload
 }
 
 /** Maps server-side field errors (`details`) onto react-hook-form fields. */

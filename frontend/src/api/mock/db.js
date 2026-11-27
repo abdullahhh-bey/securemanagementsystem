@@ -52,6 +52,7 @@ const exam = (id, ownerId, title, instructions, startOffset, endOffset, duration
   endAt: at(endOffset),
   durationMinutes,
   totalMarks,
+  maxAttempts: 1,
   settings: { shuffleQuestions: true, shuffleOptions: true, negativeMarking: false, ...settings },
   published,
   createdAt: at(-9 * DAY),

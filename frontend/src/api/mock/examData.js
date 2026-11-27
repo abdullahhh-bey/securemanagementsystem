@@ -126,14 +126,25 @@ export const examQuestions = new Map([
   ['ex_104', ['q_db_3nf:20', 'q_db_having:20', 'q_db_acid:20', 'q_db_serial:20']],
   [
     'ex_105',
-    ['q_net_osi:12', 'q_net_https:12', 'q_net_arp:12', 'q_net_transport:12', 'q_net_hs:12', 'q_net_rt:12', 'q_net_slow:14', 'q_net_subnet:14'],
+    [
+      'q_net_osi:12',
+      'q_net_https:12',
+      'q_net_arp:12',
+      'q_net_transport:12',
+      'q_net_hs:12',
+      'q_net_rt:12',
+      'q_net_slow:14:congestion',
+      'q_net_flow:14:congestion',
+      'q_net_subnet:14:routing',
+      'q_net_bgp:14:routing',
+    ],
   ],
   ['ex_106', ['q_se_func:5', 'q_se_integ:5', 'q_se_agile:5', 'q_se_solid:5', 'q_se_review:5']],
 ].map(([examId, items]) => [
   examId,
   items.map((entry) => {
-    const [questionId, marks] = entry.split(':')
-    return { questionId, marks: Number(marks) }
+    const [questionId, marks, group] = entry.split(':')
+    return { questionId, marks: Number(marks), group: group ?? null }
   }),
 ]))
 
@@ -280,11 +291,21 @@ function seedSubmitted(examId, candidateId, ability, variantPick) {
   if (variantPick) {
     // Pin the variant each candidate received so the fairness panel has a story to tell.
     const items = assignedFor(examId)
-    const keep = base.filter((p) => !items.find((i) => i.questionId === p.questionId)?.group)
+    const selectedVariants = []
+    const selectedGroups = new Set()
     for (const questionId of variantPick) {
       const item = items.find((i) => i.questionId === questionId)
-      const question = questionById(questionId)
-      keep.push({ questionId, marks: item.marks, optionOrder: question.options.map((o) => o.id) })
+      if (!item?.group || selectedGroups.has(item.group)) continue
+      selectedVariants.push(item)
+      selectedGroups.add(item.group)
+    }
+    const keep = base.filter((paperItem) => {
+      const item = items.find((assignedItem) => assignedItem.questionId === paperItem.questionId)
+      return !selectedGroups.has(item?.group)
+    })
+    for (const item of selectedVariants) {
+      const question = questionById(item.questionId)
+      keep.push({ questionId: item.questionId, marks: item.marks, optionOrder: question.options.map((o) => o.id) })
     }
     attempt.paper = shuffled(keep, random)
   } else {

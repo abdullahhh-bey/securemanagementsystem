@@ -70,8 +70,8 @@ export function CandidateExamCard({ exam, onEnter, isEntering, entryError, onEla
         </Button>
         {exam.accessStatus === 'CLOSED' && exam.resultsPublished && (
           <Button asChild size="lg" variant="secondary">
-            <Link to={`/candidate/exams/${exam.id}/result`} aria-label={`View result: ${exam.title}`}>
-              <FileCheck2 /> View result
+            <Link to="/candidate/results" aria-label="View published results">
+              <FileCheck2 /> View results
             </Link>
           </Button>
         )}

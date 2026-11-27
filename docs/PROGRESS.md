@@ -21,6 +21,8 @@
 - [x] Normalized authenticated users for frontend display and added a visible React render-error fallback instead of a blank screen.
 - [x] Updated frontend JavaScript path-alias configuration for editor resolution without `baseUrl`.
 - [x] Simplified the startup loader to the animated COMSATS logo and changed `/` to open the login page instead of role-home auto-redirect.
+- [x] Fixed frontend API payload extraction for backend `{ data: ... }` responses, preventing dashboard render failures when list endpoints return envelopes.
+- [x] Restored the missing mock Computer Networks question variants and their group assignments so submitted-attempt seeding no longer dereferences missing exam items.
 - [ ] Polish the portal dashboards, exam/results/disputes/announcements pages, typography, and shared sidebars.
 - [ ] Configure `DIRECT_URL` in `backend/.env` for future migration commands.
 - [ ] Mount the admin router using the auth teammate's middleware and password-hashing contract.
