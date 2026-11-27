@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, ClipboardCheck, Hourglass, ListChecks, Send } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardCheck, Hourglass, ListChecks, Send, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input, Textarea } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { FormField } from '@/components/FormField'
 import { StatusBadge } from '@/components/StatusBadge'
-import { useGradingQueue, usePublishResults, useResultsReview, useSaveGrade } from '@/hooks/useGrading'
+import { useEvaluateExam, useGradingQueue, usePublishResults, useResultsReview, useSaveGrade } from '@/hooks/useGrading'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -96,6 +96,7 @@ export function GradingTab({ exam }) {
   }, [items, currentKey])
 
   const saveGrade = useSaveGrade(exam.id)
+  const evaluate = useEvaluateExam(exam.id)
   const publish = usePublishResults(exam.id, { onSuccess: () => setPublishOpen(false) })
 
   const handleSaveGrade = ({ item, score, feedback, andNext, onError }) => {
@@ -201,7 +202,20 @@ export function GradingTab({ exam }) {
         <EmptyState
           icon={ClipboardCheck}
           title="Nothing to mark"
-          description="This exam has no written answers that need manual marking. You can still review scores and publish when the exam has finished."
+          description="This exam has no written answers that need manual marking. Run automatic evaluation for choice questions, then review and publish when ready."
+          action={
+            state !== 'PUBLISHED' ? (
+              <Button
+                variant="secondary"
+                loading={evaluate.isPending}
+                onClick={() => evaluate.mutate()}
+                disabledReason={evaluateDisabledReason(state, review.data)}
+              >
+                <Sparkles />
+                Run automatic evaluation
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <Card as="section" aria-labelledby="marking-heading">
@@ -289,10 +303,21 @@ export function GradingTab({ exam }) {
             emptyState={<EmptyState icon={ListChecks} title="No submissions yet" description="Nobody submitted an attempt for this exam." />}
             toolbarActions={
               review.data?.state !== 'PUBLISHED' ? (
-                <Button onClick={() => setPublishOpen(true)} disabledReason={publishDisabledReason(review.data)}>
-                  <Send />
-                  Publish results
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    loading={evaluate.isPending}
+                    onClick={() => evaluate.mutate()}
+                    disabledReason={evaluateDisabledReason(state, review.data)}
+                  >
+                    <Sparkles />
+                    Run automatic evaluation
+                  </Button>
+                  <Button onClick={() => setPublishOpen(true)} disabledReason={publishDisabledReason(review.data)}>
+                    <Send />
+                    Publish results
+                  </Button>
+                </div>
               ) : (
                 <p className="text-sm text-muted">
                   Published {review.data?.publishedAt ? formatDateTime(review.data.publishedAt) : ''}
@@ -330,6 +355,13 @@ function publishDisabledReason(review) {
   if (!review) return 'Loading review…'
   if (review.state === 'PUBLISHED') return 'Results have already been published.'
   if (!review.canPublish) return review.blockers?.[0] ?? 'Resolve the blockers before publishing.'
+  return undefined
+}
+
+function evaluateDisabledReason(queueState, review) {
+  if (queueState === 'PUBLISHED' || review?.state === 'PUBLISHED') {
+    return 'Results have already been published.'
+  }
   return undefined
 }
 

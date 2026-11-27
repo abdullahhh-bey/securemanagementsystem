@@ -424,6 +424,148 @@ const createQuestionVersion = async (req, res) => {
 };
 
 
+/**
+ * Deletion strategy:
+ * - Hard-delete question + versions + options only when no ExamQuestion /
+ *   AttemptQuestion references exist (preserves historical exam/attempt data).
+ * - Otherwise soft-delete via Question.isActive = false so bank listing hides
+ *   it while version history and exam assignments remain intact.
+ */
+export function createQuestionDeletionHandlers(db = prisma) {
+  const deleteQuestion = async (req, res) => {
+    try {
+      const { questionId } = req.params;
+
+      const question = await db.question.findFirst({
+        where: {
+          id: questionId,
+          authorId: req.user.id,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          categoryId: true,
+          versions: {
+            select: {
+              id: true,
+              versionNumber: true,
+              _count: {
+                select: {
+                  examQuestions: true,
+                  attemptQuestions: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!question) {
+        return res.status(404).json({
+          success: false,
+          message: "Question not found.",
+        });
+      }
+
+      const versionIds = question.versions.map((version) => version.id);
+      const examAssignmentCount = question.versions.reduce(
+        (sum, version) => sum + (version._count?.examQuestions ?? 0),
+        0,
+      );
+      const attemptReferenceCount = question.versions.reduce(
+        (sum, version) => sum + (version._count?.attemptQuestions ?? 0),
+        0,
+      );
+      const isReferenced = examAssignmentCount > 0 || attemptReferenceCount > 0;
+
+      if (isReferenced) {
+        await db.$transaction(async (tx) => {
+          await tx.question.update({
+            where: { id: questionId },
+            data: { isActive: false },
+          });
+
+          await writeAuditLog(tx, {
+            actorId: req.user.id,
+            action: AuditAction.QUESTION_DELETED,
+            entityType: AuditEntityType.QUESTION,
+            entityId: questionId,
+            newValues: {
+              mode: "soft",
+              examAssignmentCount,
+              attemptReferenceCount,
+              versionCount: question.versions.length,
+              categoryId: question.categoryId,
+            },
+          });
+        });
+
+        return res.status(200).json({
+          success: true,
+          message:
+            "Question deactivated. It remains on existing exams and historical attempts.",
+          deletion: {
+            mode: "soft",
+            questionId,
+          },
+        });
+      }
+
+      await db.$transaction(async (tx) => {
+        if (versionIds.length > 0) {
+          await tx.questionOption.deleteMany({
+            where: {
+              questionVersionId: { in: versionIds },
+            },
+          });
+          await tx.questionVersion.deleteMany({
+            where: {
+              questionId,
+            },
+          });
+        }
+
+        await tx.question.delete({
+          where: { id: questionId },
+        });
+
+        await writeAuditLog(tx, {
+          actorId: req.user.id,
+          action: AuditAction.QUESTION_DELETED,
+          entityType: AuditEntityType.QUESTION,
+          entityId: questionId,
+          newValues: {
+            mode: "hard",
+            versionCount: question.versions.length,
+            categoryId: question.categoryId,
+          },
+        });
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Question deleted successfully.",
+        deletion: {
+          mode: "hard",
+          questionId,
+        },
+      });
+    } catch (error) {
+      console.error("Delete question error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to delete question.",
+      });
+    }
+  };
+
+  return { deleteQuestion };
+}
+
+const deletionHandlers = createQuestionDeletionHandlers();
+export const deleteQuestion = deletionHandlers.deleteQuestion;
+
 export {
   createQuestion,
   getQuestions,

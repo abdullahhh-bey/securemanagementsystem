@@ -5,6 +5,7 @@ import {
   getQuestions,
   getQuestionById,
   createQuestionVersion,
+  deleteQuestion,
 } from "../controllers/question.controller.js";
 import {
   protect,
@@ -19,5 +20,6 @@ router.post("/", createQuestion);
 router.get("/", getQuestions);
 router.get("/:questionId", getQuestionById);
 router.post("/:questionId/versions", createQuestionVersion);
+router.delete("/:questionId", deleteQuestion);
 
 export default router;

@@ -1,24 +1,48 @@
 
 import prisma from "../../db/db.js";
 import { AuditAction, AuditEntityType, writeAuditLog } from "../utils/audit.js";
+import { recalculateAttemptResult } from "./grading.controller.js";
 
-// AUTOMATICALLY EVALUATE ALL SUBMITTED ATTEMPTS
+function scoreChoiceQuestion(attemptQuestion) {
+  const assignedMarks = Number(attemptQuestion.assignedMarks) || 0;
+  const answer = attemptQuestion.answer;
+  const correctOptionIds = (attemptQuestion.questionVersion.options ?? [])
+    .filter((option) => option.isCorrect)
+    .map((option) => option.id)
+    .sort();
+
+  const selectedOptionIds =
+    answer?.selectedOptions?.map((selected) => selected.optionId).sort() || [];
+
+  const isCorrect =
+    correctOptionIds.length > 0 &&
+    correctOptionIds.length === selectedOptionIds.length &&
+    correctOptionIds.every(
+      (optionId, index) => optionId === selectedOptionIds[index],
+    );
+
+  return {
+    assignedMarks,
+    awardedMarks: isCorrect ? assignedMarks : 0,
+    answer,
+  };
+}
+
+// AUTOMATICALLY EVALUATE CHOICE QUESTIONS ON SUBMITTED ATTEMPTS
+// Written answers are left for manual grading and are never overwritten here.
 const evaluateExam = async (req, res) => {
   try {
     const { examId } = req.params;
+    const now = new Date();
 
-    // Verify that the exam belongs to this examiner
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
         ownerId: req.user.id,
       },
-      include: {
-        questions: {
-          include: {
-            questionVersion: true,
-          },
-        },
+      select: {
+        id: true,
+        title: true,
       },
     });
 
@@ -29,20 +53,6 @@ const evaluateExam = async (req, res) => {
       });
     }
 
-    // Automatic evaluation supports choice-based questions only
-    const hasWrittenQuestions = exam.questions.some(
-      (question) => question.questionVersion.type === "WRITTEN"
-    );
-
-    if (hasWrittenQuestions) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "This exam contains written questions and cannot be fully evaluated automatically.",
-      });
-    }
-
-    // Retrieve submitted official attempts
     const attempts = await prisma.examAttempt.findMany({
       where: {
         examId,
@@ -80,84 +90,50 @@ const evaluateExam = async (req, res) => {
       const results = [];
 
       for (const attempt of attempts) {
-        let totalMarks = 0;
-        let obtainedMarks = 0;
-
         for (const attemptQuestion of attempt.questions) {
-          const assignedMarks = Number(attemptQuestion.assignedMarks);
+          const type = attemptQuestion.questionVersion.type;
 
-          totalMarks += assignedMarks;
-
-          const answer = attemptQuestion.answer;
-
-          const correctOptionIds =
-            attemptQuestion.questionVersion.options
-              .filter((option) => option.isCorrect)
-              .map((option) => option.id)
-              .sort();
-
-          const selectedOptionIds =
-            answer?.selectedOptions
-              .map((selected) => selected.optionId)
-              .sort() || [];
-
-          const isCorrect =
-            correctOptionIds.length > 0 &&
-            correctOptionIds.length === selectedOptionIds.length &&
-            correctOptionIds.every(
-              (optionId, index) =>
-                optionId === selectedOptionIds[index]
-            );
-
-          const awardedMarks = isCorrect ? assignedMarks : 0;
-
-          if (isCorrect) {
-            obtainedMarks += assignedMarks;
+          // Never touch written answers — manual grading owns those marks.
+          if (type === "WRITTEN") {
+            continue;
           }
 
-          // Save marks for answered questions
-          if (answer) {
-            await tx.attemptAnswer.update({
-              where: {
-                id: answer.id,
-              },
-              data: {
-                awardedMarks,
-                gradingMethod: "AUTO",
-                gradedById: req.user.id,
-                gradedAt: new Date(),
-              },
-            });
+          const { awardedMarks, answer } = scoreChoiceQuestion(attemptQuestion);
+
+          if (!answer) {
+            continue;
           }
+
+          // Preserve any unexpected manual override on choice answers.
+          if (answer.gradingMethod === "MANUAL") {
+            continue;
+          }
+
+          await tx.attemptAnswer.update({
+            where: {
+              id: answer.id,
+            },
+            data: {
+              awardedMarks,
+              gradingMethod: "AUTO",
+              gradedById: req.user.id,
+              gradedAt: now,
+            },
+          });
         }
 
-        // Create or update the attempt result
-        const result = await tx.result.upsert({
-          where: {
-            attemptId: attempt.id,
-          },
-          create: {
-            attemptId: attempt.id,
-            totalMarks,
-            obtainedMarks,
-            status: "READY_TO_PUBLISH",
-            reviewedById: req.user.id,
-            reviewedAt: new Date(),
-          },
-          update: {
-            totalMarks,
-            obtainedMarks,
-            status: "READY_TO_PUBLISH",
-            reviewedById: req.user.id,
-            reviewedAt: new Date(),
-          },
+        const recalculated = await recalculateAttemptResult(tx, {
+          attemptId: attempt.id,
+          examinerId: req.user.id,
+          now,
         });
 
         results.push({
           attemptId: attempt.id,
-          obtainedMarks,
-          totalMarks,
-          resultId: result.id,
+          obtainedMarks: recalculated.obtainedMarks,
+          totalMarks: recalculated.totalMarks,
+          resultId: recalculated.result.id,
+          status: recalculated.status,
         });
       }
 
@@ -168,7 +144,7 @@ const evaluateExam = async (req, res) => {
         entityId: examId,
         newValues: {
           evaluatedAttempts: results.length,
-          resultStatus: "READY_TO_PUBLISH",
+          examTitle: exam.title,
         },
       });
 

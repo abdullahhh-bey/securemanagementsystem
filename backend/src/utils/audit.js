@@ -16,12 +16,16 @@ export const AuditAction = Object.freeze({
   RESULTS_PUBLISHED: "RESULTS_PUBLISHED",
   QUESTION_CREATED: "QUESTION_CREATED",
   QUESTION_VERSION_CREATED: "QUESTION_VERSION_CREATED",
+  QUESTION_DELETED: "QUESTION_DELETED",
   CATEGORY_CREATED: "CATEGORY_CREATED",
   CATEGORY_UPDATED: "CATEGORY_UPDATED",
   CATEGORY_DELETED: "CATEGORY_DELETED",
   DISPUTE_REVIEW_STARTED: "DISPUTE_REVIEW_STARTED",
   DISPUTE_RESOLVED: "DISPUTE_RESOLVED",
   DISPUTE_REJECTED: "DISPUTE_REJECTED",
+  ANNOUNCEMENT_SENT: "ANNOUNCEMENT_SENT",
+  COMPENSATION_GRANTED: "COMPENSATION_GRANTED",
+  GRADE_SAVED: "GRADE_SAVED",
 });
 
 export const AuditEntityType = Object.freeze({
@@ -33,6 +37,9 @@ export const AuditEntityType = Object.freeze({
   CATEGORY: "QUESTION_CATEGORY",
   DISPUTE: "RESULT_DISPUTE",
   RESULT: "RESULT",
+  ANNOUNCEMENT: "EXAM_ANNOUNCEMENT",
+  ATTEMPT: "EXAM_ATTEMPT",
+  ATTEMPT_ANSWER: "ATTEMPT_ANSWER",
 });
 
 /**
@@ -163,6 +170,15 @@ export function deriveAuditDetail(row) {
   if (newValues.hasResolution) parts.push("Resolution recorded");
   if (newValues.candidateId) parts.push(`Candidate ${newValues.candidateId}`);
   if (newValues.examId && row.entityType !== "EXAM") parts.push(`Exam ${newValues.examId}`);
+  if (newValues.messageLength !== undefined) {
+    parts.push(`${newValues.messageLength}-character announcement`);
+  }
+  if (newValues.minutes !== undefined) {
+    parts.push(`${newValues.minutes} compensation minute${newValues.minutes === 1 ? "" : "s"}`);
+  }
+  if (newValues.score !== undefined && newValues.maxMarks !== undefined) {
+    parts.push(`Scored ${newValues.score}/${newValues.maxMarks}`);
+  }
   if (metadata.resultId) parts.push(`Result ${metadata.resultId}`);
 
   return parts.join(". ");
