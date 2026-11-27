@@ -1,6 +1,6 @@
 # Handoff
 
-- **Current focus:** Database schema and initial Neon migration are complete; API and frontend feature work remain out of scope.
-- **Recent changes:** Created and applied migration `20261127065622_init` to Neon using the unpooled `DATABASE_URL` as a process-only `DIRECT_URL` override.
-- **Known issues:** `backend/.env` contains only `DATABASE_URL`; set `DIRECT_URL` for future normal migration commands. `npm audit` reports three high-severity advisories in Prisma CLI's transitive `effect` dependency; no forced downgrade was applied.
-- **Immediate next step:** Continue with the separately assigned backend/frontend implementation when requested; use Prisma migrations for future schema changes.
+- **Current focus:** Integrate the isolated admin user-management router with the auth teammate's middleware and password hasher.
+- **Recent changes:** Added admin user listing/details/creation/profile/role/status endpoints, validation, audit logging, session revocation, last-admin safeguards, and tests. The module does not modify the shared server entry point.
+- **Known issues:** The admin router is not mounted until auth dependencies are supplied. Confirm that the auth module's password policy matches the initial-password validator. `backend/.env` needs `DIRECT_URL` for future Prisma migrations.
+- **Immediate next step:** Agree on `authenticate`, `requireAdmin`, actor-ID, and password-hasher exports with the auth teammate, then mount `createAdminRouter` at `/api/admin`.

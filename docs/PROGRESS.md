@@ -11,4 +11,7 @@
 - [x] Validated the schema and generated the client with Prisma 7.10.1 using the unpooled URL override for validation only.
 - [x] Built the frontend and syntax-checked the backend.
 - [x] Created and applied the initial Prisma migration to the Neon database with explicit approval.
+- [x] Implemented isolated, validated admin user-management route, service, and controller modules.
+- [x] Added admin API tests for auth gating, validation, user creation, role/status changes, session revocation, and last-admin protections.
 - [ ] Configure `DIRECT_URL` in `backend/.env` for future migration commands.
+- [ ] Mount the admin router using the auth teammate's middleware and password-hashing contract.
