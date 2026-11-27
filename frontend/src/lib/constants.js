@@ -106,22 +106,16 @@ export const DIFFICULTY_OPTIONS = [
 
 /** Schema QuestionType (+ legacy aliases for existing mock data). */
 export const QUESTION_TYPE_META = {
-  SINGLE_CHOICE: { label: 'Single choice', short: 'Single' },
-  MULTIPLE_SELECT: { label: 'Multiple select', short: 'Multi' },
+  SINGLE_CHOICE: { label: 'Multiple Choices', short: 'Choices' },
+  MULTIPLE_SELECT: { label: 'Multiple Choices', short: 'Choices' },
   WRITTEN: { label: 'Written', short: 'Written' },
-  MCQ_SINGLE: { label: 'Single choice', short: 'Single' },
-  MCQ_MULTI: { label: 'Multiple select', short: 'Multi' },
+  MCQ_SINGLE: { label: 'Multiple Choices', short: 'Choices' },
+  MCQ_MULTI: { label: 'Multiple Choices', short: 'Choices' },
 }
 export const QUESTION_TYPE_OPTIONS = [
-  { value: 'SINGLE_CHOICE', label: 'Single choice' },
-  { value: 'MULTIPLE_SELECT', label: 'Multiple select' },
+  { value: 'SINGLE_CHOICE', label: 'Multiple Choices' },
   { value: 'WRITTEN', label: 'Written' },
 ]
-
-export const MARKING_RULES = {
-  ALL_OR_NOTHING: 'All or nothing',
-  PARTIAL: 'Partial credit with penalty',
-}
 
 /** Aggregate exam results pipeline (UI). Per-attempt uses ResultStatus below. */
 export const RESULTS_STATE_META = {

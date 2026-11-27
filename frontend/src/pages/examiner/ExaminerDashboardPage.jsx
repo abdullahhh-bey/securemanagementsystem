@@ -87,11 +87,7 @@ export default function ExaminerDashboardPage() {
 
   const count = (status) => (exams ? exams.filter((e) => e.status === status).length : 0)
   const attention = exams ? buildAttentionItems(exams, now) : []
-  const firstName =
-    userDisplayName(user)
-      .replace(/^(Dr|Prof)\.?\s+/i, '')
-      .split(/\s+/)
-      .find(Boolean) || 'Teacher'
+  const firstName = (userDisplayName(user) || 'Teacher').replace(/^(Dr|Prof)\.?\s+/i, '').split(/\s+/)[0] || 'Teacher'
 
   const stats = [
     { label: 'Drafts', value: count('DRAFT'), icon: CircleDashed, hint: 'Still being prepared', to: '/examiner/exams?status=DRAFT' },

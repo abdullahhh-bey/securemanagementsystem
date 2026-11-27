@@ -17,15 +17,20 @@ const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage'))
 const AdminExamsPage = lazy(() => import('@/pages/admin/AdminExamsPage'))
 const ChangePasswordPage = lazy(() => import('@/pages/account/ChangePasswordPage'))
-const CandidateResultPage = lazy(() => import('@/pages/candidate/CandidateResultPage'))
 const ExamWorkspacePage = lazy(() => import('@/pages/examiner/ExamWorkspacePage'))
 const CandidateExamPage = lazy(() => import('@/pages/candidate/CandidateExamPage'))
 const CandidateExamsPage = lazy(() => import('@/pages/candidate/CandidateExamsPage'))
+const CandidateDashboardPage = lazy(() => import('@/pages/candidate/CandidateDashboardPage'))
+const CandidateAttemptPage = lazy(() => import('@/pages/candidate/CandidateAttemptPage'))
+const CandidateResultsPage = lazy(() => import('@/pages/candidate/CandidateResultsPage'))
+const CandidateDisputesPage = lazy(() => import('@/pages/candidate/CandidateDisputesPage'))
+const CandidateAnnouncementsPage = lazy(() => import('@/pages/candidate/CandidateAnnouncementsPage'))
 const CandidateLayout = lazy(() => import('@/layouts/CandidateLayout'))
 const ExamShell = lazy(() => import('@/pages/examiner/ExamShell'))
 const ExamFormPage = lazy(() => import('@/pages/examiner/ExamFormPage'))
 const ExaminerDashboardPage = lazy(() => import('@/pages/examiner/ExaminerDashboardPage'))
 const ExaminerLayout = lazy(() => import('@/layouts/ExaminerLayout'))
+const ExaminerStudentsPage = lazy(() => import('@/pages/examiner/StudentsPage'))
 const ExamReviewPage = lazy(() => import('@/pages/examiner/ExamReviewPage'))
 const ExamsListPage = lazy(() => import('@/pages/examiner/ExamsListPage'))
 
@@ -97,6 +102,7 @@ export default function App() {
                     <Route path="/examiner" element={<ProtectedRoute allowedRoles={[ROLES.EXAMINER]} />}>
                       <Route element={<ExaminerLayout />}>
                         <Route index element={<ExaminerDashboardPage />} />
+                        <Route path="students" element={<ExaminerStudentsPage />} />
                         <Route path="exams" element={<ExamsListPage />} />
                         <Route path="exams/new" element={<ExamFormPage />} />
                         <Route path="exams/:id/sandbox" element={<ExamWorkspacePage />} />
@@ -123,9 +129,14 @@ export default function App() {
 
                     <Route path="/candidate" element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE]} />}>
                       <Route element={<CandidateLayout />}>
-                        <Route index element={<CandidateExamsPage />} />
+                        <Route index element={<CandidateDashboardPage />} />
+                        <Route path="exams" element={<CandidateExamsPage />} />
                         <Route path="exams/:id" element={<CandidateExamPage />} />
-                        <Route path="exams/:id/result" element={<CandidateResultPage />} />
+                        <Route path="exams/:id/attempt/:attemptId" element={<CandidateAttemptPage />} />
+                        <Route path="exams/:id/result" element={<Navigate to="/candidate/results" replace />} />
+                        <Route path="results" element={<CandidateResultsPage />} />
+                        <Route path="disputes" element={<CandidateDisputesPage />} />
+                        <Route path="announcements" element={<CandidateAnnouncementsPage />} />
                         <Route path="account/password" element={<ChangePasswordPage />} />
                         <Route path="*" element={<Navigate to="/404" replace />} />
                       </Route>

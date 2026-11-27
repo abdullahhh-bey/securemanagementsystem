@@ -2,12 +2,17 @@ export const queryKeys = {
   me: ['auth', 'me'],
   serverTime: ['time'],
   users: ['admin', 'users'],
+  teacherStudents: ['examiner', 'students'],
   exams: ['exams'],
   exam: (id) => ['exams', String(id)],
   examCandidates: (id) => ['exams', String(id), 'candidates'],
   examAvailableCandidates: (id) => ['exams', String(id), 'candidates', 'available'],
   candidateExams: ['candidate', 'exams'],
   candidateExam: (id) => ['candidate', 'exams', String(id)],
+  candidateAttempt: (id) => ['candidate', 'attempts', String(id), 'workspace'],
+  candidateResults: ['candidate', 'results'],
+  candidateDisputes: ['candidate', 'disputes'],
+  candidateAnnouncements: ['candidate', 'announcements'],
 
   // Exam content. Kept under their own root ('x') so invalidating `exams` does not refetch them (and vice versa).
   questions: ['x', 'questions'],

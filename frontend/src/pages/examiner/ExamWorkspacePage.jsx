@@ -8,7 +8,6 @@ import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -60,31 +59,6 @@ function McqSingle({ question, value, onChange }) {
   )
 }
 
-function McqMulti({ question, value, onChange }) {
-  const selected = new Set(value?.selected ?? [])
-  const toggle = (optId, checked) => {
-    const next = new Set(selected)
-    if (checked) next.add(optId)
-    else next.delete(optId)
-    onChange({ selected: [...next] })
-  }
-  return (
-    <fieldset className="space-y-2">
-      <legend className="sr-only">Options for question {question.number} (select all that apply)</legend>
-      {question.options.map((opt) => {
-        const id = `q-${question.id}-${opt.id}`
-        const checked = selected.has(opt.id)
-        return (
-          <label key={opt.id} htmlFor={id} className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-surface p-3 hover:bg-sunken">
-            <Checkbox id={id} checked={checked} onCheckedChange={(next) => toggle(opt.id, next === true)} className="mt-0.5" />
-            <span className="text-sm">{opt.text}</span>
-          </label>
-        )
-      })}
-    </fieldset>
-  )
-}
-
 function WrittenAnswer({ question, value, onChange }) {
   const id = `written-${question.id}`
   return (
@@ -115,11 +89,8 @@ function QuestionBlock({ question, answer, onAnswer }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {(question.type === 'MCQ_SINGLE' || question.type === 'SINGLE_CHOICE') && (
+        {['MCQ_SINGLE', 'SINGLE_CHOICE', 'MCQ_MULTI', 'MULTIPLE_SELECT'].includes(question.type) && (
           <McqSingle question={question} value={answer} onChange={onAnswer} />
-        )}
-        {(question.type === 'MCQ_MULTI' || question.type === 'MULTIPLE_SELECT') && (
-          <McqMulti question={question} value={answer} onChange={onAnswer} />
         )}
         {question.type === 'WRITTEN' && <WrittenAnswer question={question} value={answer} onChange={onAnswer} />}
       </CardContent>

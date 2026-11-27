@@ -1,9 +1,8 @@
-
 {
   "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    },
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": { "@/*": ["./src/*"] },
     "jsx": "react-jsx"
   },
   "include": ["src"]

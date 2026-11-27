@@ -14,8 +14,9 @@ import {
   saveCandidateAnswer,
   submitCandidateAttempt,
   getCandidateResults,
-createCandidateDispute,
-getCandidateDisputes,
+  getCandidateAnnouncements,
+  createCandidateDispute,
+  getCandidateDisputes,
 } from "../controllers/candidate.controller.js";
 
 const router = express.Router();
@@ -37,6 +38,7 @@ router.post("/attempts/:attemptId/submit", submitCandidateAttempt);
 
 // Published results
 router.get("/results", getCandidateResults);
+router.get("/announcements", getCandidateAnnouncements);
 
 // Result disputes
 router.post("/results/:resultId/disputes", createCandidateDispute);

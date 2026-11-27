@@ -23,7 +23,6 @@ const toDraftItems = (items) =>
   (items ?? []).map((item) => ({
     questionId: item.questionId,
     marks: item.marks,
-    group: item.group ?? null,
     question: item.question,
   }))
 
@@ -43,8 +42,9 @@ export function QuestionsTab({ exam }) {
 
   const editable = assigned.data?.editable ?? exam.status === 'DRAFT'
   const serverDraft = useMemo(() => toDraftItems(assigned.data?.items), [assigned.data])
+  const hasLegacyGroups = Boolean(assigned.data?.items?.some((item) => item.group))
   const draft = draftOverride ?? serverDraft
-  const dirty = draftOverride !== null
+  const dirty = draftOverride !== null || hasLegacyGroups
   const setDraft = (updater) => {
     setDraftOverride((current) => {
       const base = current ?? serverDraft
@@ -65,14 +65,14 @@ export function QuestionsTab({ exam }) {
   const addToExam = (question) => {
     if (!editable) return
     if (assignedIds.has(question.id)) return
-    setDraft((current) => [...current, { questionId: question.id, marks: question.defaultMarks, group: null, question }])
+    setDraft((current) => [...current, { questionId: question.id, marks: question.defaultMarks, question }])
   }
 
   const handleSave = () => {
-    const payload = draft.map(({ questionId, marks, group }) => ({
+    const payload = draft.map(({ questionId, marks }) => ({
       questionId,
       marks: Number(marks),
-      group: group || null,
+      group: null,
     }))
     saveAssigned.mutate(payload, {
       onSuccess: () => setDraftOverride(null),
@@ -103,8 +103,8 @@ export function QuestionsTab({ exam }) {
     {
       key: 'topic',
       header: 'Topic',
-      sortValue: (q) => q.topic.toLowerCase(),
-      cell: (q) => <span className="text-sm">{q.topic}</span>,
+      sortValue: (q) => String(q.topic ?? '').toLowerCase(),
+      cell: (q) => <span className="text-sm">{q.topic || '—'}</span>,
     },
     {
       key: 'difficulty',
@@ -201,7 +201,7 @@ export function QuestionsTab({ exam }) {
           onRetry={bank.refetch}
           isRetrying={bank.isRefetching}
           pageSize={8}
-          searchText={(q) => `${q.text} ${q.topic}`}
+          searchText={(q) => `${q.text} ${q.topic ?? ''}`}
           searchLabel="Search questions"
           searchPlaceholder="Search by text or topic"
           filters={[
@@ -210,9 +210,9 @@ export function QuestionsTab({ exam }) {
               label: 'Topic',
               options: [
                 { value: '', label: 'All topics' },
-                ...[...new Set((bank.data ?? []).map((q) => q.topic))].sort().map((topic) => ({ value: topic, label: topic })),
+                ...[...new Set((bank.data ?? []).map((q) => q.topic).filter(Boolean))].sort().map((topic) => ({ value: topic, label: topic })),
               ],
-              match: (q, value) => q.topic === value,
+              match: (q, value) => (q.topic ?? '') === value,
             },
             {
               id: 'difficulty',
@@ -244,7 +244,7 @@ export function QuestionsTab({ exam }) {
         onOpenChange={setImportOpen}
         title="Import questions"
         description="Upload a CSV or JSON file. Only valid rows are sent; fix every error before importing."
-        sampleHint="Columns: type, text, topic, difficulty, defaultMarks, options (or option1…), correct, markingRule, penalty, modelAnswer."
+        sampleHint="Columns: type, text, topic (optional), difficulty, marks, options (or option1…), correct, penalty (0 to 1), modelAnswer."
         parseRecord={parseQuestionRecord}
         columns={[
           { key: 'topic', header: 'Topic' },

@@ -54,7 +54,7 @@ export default function ExamShell() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteExam = useDeleteExam({ onSuccess: () => navigate('/examiner/exams', { replace: true }) })
 
-  const back = { to: '/examiner/exams', label: 'My exams' }
+  const back = { to: '/examiner/exams', label: 'Exams' }
   const exam = normalizeExam(data)
   const window = exam ? examWindow(exam) : null
 

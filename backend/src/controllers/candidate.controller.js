@@ -42,6 +42,11 @@ export const getCandidateExams = async (req, res) => {
                                 questions: true,
                             },
                         },
+                        questions: {
+                            select: {
+                                assignedMarks: true,
+                            },
+                        },
                         attempts: {
                             where: {
                                 participantId: candidateId,
@@ -118,6 +123,11 @@ export const getCandidateExam = async (req, res) => {
                         _count: {
                             select: {
                                 questions: true,
+                            },
+                        },
+                        questions: {
+                            select: {
+                                assignedMarks: true,
                             },
                         },
                         attempts: {
@@ -908,6 +918,55 @@ export const getCandidateResults = async (req, res) => {
     }
 };
 
+// List announcements published for exams assigned to the logged-in candidate.
+export const getCandidateAnnouncements = async (req, res) => {
+    try {
+        const announcements = await prisma.examAnnouncement.findMany({
+            where: {
+                publishedAt: { not: null },
+                exam: {
+                    enrollments: {
+                        some: {
+                            candidateId: req.user.id,
+                            status: "ENROLLED",
+                        },
+                    },
+                },
+            },
+            include: {
+                exam: {
+                    select: {
+                        id: true,
+                        title: true,
+                    },
+                },
+                author: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+            },
+            orderBy: [
+                { publishedAt: "desc" },
+                { createdAt: "desc" },
+            ],
+        });
+
+        return res.status(200).json({
+            success: true,
+            announcements,
+        });
+    } catch (error) {
+        console.error("Get candidate announcements error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to retrieve announcements.",
+        });
+    }
+};
+
 // Submit a dispute against the candidate's own published result.
 export const createCandidateDispute = async (req, res) => {
     try {
@@ -917,11 +976,11 @@ export const createCandidateDispute = async (req, res) => {
 
         if (
             typeof explanation !== "string" ||
-            !explanation.trim()
+            explanation.trim().length < 20
         ) {
             return res.status(400).json({
                 success: false,
-                message: "Please provide an explanation for your dispute.",
+                message: "Please explain your concern in at least 20 characters.",
             });
         }
 

@@ -106,27 +106,23 @@ const positiveMarks = z.coerce
   .number({ error: 'Marks must be a number.' })
   .refine((n) => n > 0, 'Marks must be more than zero.')
 
-const isMulti = (type) => type === 'MCQ_MULTI' || type === 'MULTIPLE_SELECT'
 const isSingle = (type) => type === 'MCQ_SINGLE' || type === 'SINGLE_CHOICE'
-const isChoice = (type) => isMulti(type) || isSingle(type)
 
 export const questionSchema = z
   .object({
-    type: z.enum(['SINGLE_CHOICE', 'MULTIPLE_SELECT', 'WRITTEN', 'MCQ_SINGLE', 'MCQ_MULTI'], {
+    type: z.enum(['SINGLE_CHOICE', 'WRITTEN'], {
       error: 'Choose a question type.',
     }),
     text: requiredText('Question', 4000),
-    topic: requiredText('Topic', 80),
+    topic: z.string().trim().max(80, 'Topic must be 80 characters or fewer.').optional().or(z.literal('')),
     difficulty: z.enum(['EASY', 'MEDIUM', 'HARD', 'easy', 'medium', 'hard'], { error: 'Choose a difficulty.' }),
     defaultMarks: positiveMarks,
     options: z.array(questionOptionSchema),
-    markingRule: z.enum(['ALL_OR_NOTHING', 'PARTIAL']).nullable(),
-    penalty: z.coerce.number().min(0).max(1).nullable(),
+    penalty: z.coerce.number().min(0, 'Penalty cannot be less than 0.').max(1, 'Penalty cannot be greater than 1.'),
     modelAnswer: z.string().trim().max(8000),
   })
   .superRefine((value, ctx) => {
     if (value.type === 'WRITTEN') return
-    if (!isChoice(value.type)) return
     const filled = value.options.filter((o) => o.text.trim())
     if (filled.length < 2) {
       ctx.addIssue({ code: 'custom', path: ['options'], message: 'Add at least two answer options.' })
@@ -139,10 +135,5 @@ export const questionSchema = z
     }
     if (isSingle(value.type) && correct > 1) {
       ctx.addIssue({ code: 'custom', path: ['options'], message: 'A single-answer question can have only one correct option.' })
-    }
-    if (isMulti(value.type) && value.markingRule === 'PARTIAL') {
-      if (value.penalty === null || Number.isNaN(value.penalty) || value.penalty < 0 || value.penalty > 1) {
-        ctx.addIssue({ code: 'custom', path: ['penalty'], message: 'The penalty is a fraction between 0 and 1.' })
-      }
     }
   })

@@ -1,20 +1,19 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BrandLogo } from '@/components/layout/BrandLogo'
 import { ErrorState } from '@/components/ErrorState'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
-import { roleHome } from '@/lib/constants'
 import ForbiddenPage from '@/pages/errors/ForbiddenPage'
 
 export function FullPageLoader() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background" role="status">
-      <BrandLogo size="md" />
-      <div className="flex w-56 flex-col gap-2">
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-3/4" />
-      </div>
-      <span className="sr-only">Loading your session</span>
+    <div
+      className="grid min-h-dvh place-items-center overflow-hidden bg-background"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading"
+    >
+      <span className="sr-only">Loading</span>
+      <BrandLogo size="lg" className="loader-logo" />
     </div>
   )
 }
@@ -37,17 +36,14 @@ export function ProtectedRoute({ allowedRoles, children }) {
   return children ?? <Outlet />
 }
 
-/** The login page is for signed-out users only. */
+/** Keep sign-in available at startup, even when a previous session is still valid. */
 export function PublicOnlyRoute({ children }) {
-  const { user, status } = useAuth()
+  const { status } = useAuth()
   if (status === 'loading') return <FullPageLoader />
-  if (status === 'authenticated') return <Navigate to={roleHome(user.role)} replace />
   return children ?? <Outlet />
 }
 
-/** "/" sends everyone to their own home. */
+/** Opening the app root always starts at sign-in. */
 export function RootRedirect() {
-  const { user, status } = useAuth()
-  if (status === 'loading') return <FullPageLoader />
-  return <Navigate to={status === 'authenticated' ? roleHome(user.role) : '/login'} replace />
+  return <Navigate to="/login" replace />
 }

@@ -143,7 +143,6 @@ export async function getQuestionAnalytics(examId) {
 export async function getFairness(examId) {
   ownedExam(examId)
   await delay()
-  const items = assignedFor(examId)
   const attempts = realAttempts(examId)
   const papers = attempts.map((attempt) => {
     let weighted = 0
@@ -161,22 +160,14 @@ export async function getFairness(examId) {
   const mean = scores.length ? round2(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
   const variance = scores.length ? Math.round((scores.reduce((a, s) => a + (s - mean) ** 2, 0) / scores.length) * 10000) / 10000 : 0
   const spread = scores.length ? round2(Math.max(...scores) - Math.min(...scores)) : 0
-  const groups = [...new Set(items.filter((i) => i.group).map((i) => i.group))]
   const tolerance = 0.25
   let note
   if (papers.length === 0) note = 'No papers have been issued yet. Fairness is calculated from the papers candidates actually received.'
-  else if (groups.length === 0) note = 'Every candidate received the same questions, so papers differ only in order. The difficulty score is identical for everyone.'
-  else {
-    const hardest = papers.reduce((a, b) => (b.difficultyScore > a.difficultyScore ? b : a))
-    note =
-      spread === 0
-        ? `Variants in groups ${groups.join(' and ')} were rotated so every candidate received the same mix of easy, medium and hard questions.`
-        : `Variants in groups ${groups.join(' and ')} were rotated so most candidates received the same difficulty mix. With ${papers.length} candidates the rotation cannot split evenly, so ${hardest.candidate.name}'s paper is ${spread.toFixed(2)} harder than the easiest. That is ${spread <= tolerance ? 'inside' : 'outside'} the allowed tolerance of ${tolerance.toFixed(2)}.`
-  }
+  else note = 'Every candidate receives the full assigned question set; question order may differ.'
   return clone({
-    method: 'Questions in the same variant group are interchangeable. Each candidate receives one per group, assigned in rotation by declared difficulty so no group favours anyone.',
+    method: 'Every candidate receives the full assigned question set; randomized order does not change the question mix.',
     note,
-    variantGroups: groups,
+    variantGroups: [],
     papers: papers.sort((a, b) => b.difficultyScore - a.difficultyScore),
     mean,
     variance,
